@@ -1,8 +1,10 @@
+#pragma once
+
 #include <cstdint>
 #include <vector>
 #include <variant>
 
-using ResultValue = std::variant<std::uint64_t, std::uint32_t, double>;
+using ResultValue = std::variant<std::uint64_t, std::uint32_t, double, std::int64_t>;
 
 struct Row {
     std::uint64_t transaction_id;
@@ -27,6 +29,4 @@ struct ResultTable {
     std::vector<ResultRow> rows;
 };
 
-
-
-
+Table generate_table(std::uint64_t numRows);
