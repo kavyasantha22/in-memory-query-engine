@@ -2,9 +2,11 @@
 
 #include <vector>
 #include <functional>
+#include <optional>
 #include "table.hpp"
+#include "aggregation.hpp"
 
-enum ColumnName {
+enum class ColumnName {
     TRANSACTION_ID, 
     PRODUCT_ID,     
     CATEGORY_ID,    
@@ -15,7 +17,8 @@ enum ColumnName {
 
 struct Query {
     std::vector<ColumnName> projection;
-    std::function<bool(Row)> filter;
+    std::optional<std::function<bool(Row)>> filter;
+    std::optional<Aggregation> aggregation;
 };
 
 ResultTable query_table(Table table, Query query);
