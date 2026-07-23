@@ -9,7 +9,7 @@ Table generate_table(std::uint64_t numRows){
         std::chrono::system_clock::now().time_since_epoch()
     ).count();
     for (uint64_t i = 0; i < numRows; i++){
-        new_table.rows[i].category_id = i;
+        new_table.rows[i].transaction_id = i;
         new_table.rows[i].product_id = i%100;
         new_table.rows[i].category_id = i%10;
         new_table.rows[i].price = (i%997) * 23 + i%13 * 7;

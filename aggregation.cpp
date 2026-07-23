@@ -84,7 +84,7 @@ double calculate_min(std::vector<Row> rows, ColumnName column){
 }
 
 
-ResultValue handle_aggregation(std::vector<Row> rows, Aggregation aggr){
+ResultValue aggregate(std::vector<Row> rows, Aggregation aggr){
     switch (aggr.type){
         case AggregationType::AVG:
             return calculate_avg(rows, aggr.column);
@@ -99,4 +99,13 @@ ResultValue handle_aggregation(std::vector<Row> rows, Aggregation aggr){
         default:
             throw std::invalid_argument("Unknown aggregation type");
     }
+}
+
+std::vector<ResultValue> aggregate_groups(std::vector<Group> groups, Aggregation aggr){
+    std::vector<ResultValue> aggregated_values;
+    for (Group g: groups){
+        ResultValue val = aggregate(g.rows, aggr);
+        aggregated_values.push_back(val);
+    }
+    return aggregated_values;
 }

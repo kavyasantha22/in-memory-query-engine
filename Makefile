@@ -1,5 +1,5 @@
 CXX := g++
-CXXFLAGS := -std=c++17 -Wall -Wextra -I.
+CXXFLAGS := -Wall -Wextra -I.
 QUERY_TEST := query_test_runner
 QUERY_AGGREGATION_TEST := query_aggregation_test_runner
 AGGREGATION_TEST := aggregation_test_runner

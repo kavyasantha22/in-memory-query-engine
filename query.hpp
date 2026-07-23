@@ -6,19 +6,11 @@
 #include "table.hpp"
 #include "aggregation.hpp"
 
-enum class ColumnName {
-    TRANSACTION_ID, 
-    PRODUCT_ID,     
-    CATEGORY_ID,    
-    PRICE,          
-    QUANTITY,       
-    TIMESTAMP       
-};
-
 struct Query {
     std::vector<ColumnName> projection;
     std::optional<std::function<bool(Row)>> filter;
     std::optional<Aggregation> aggregation;
+    std::optional<std::vector<ColumnName>> group_by;
 };
 
 ResultTable query_table(Table table, Query query);

@@ -29,4 +29,18 @@ struct ResultTable {
     std::vector<ResultRow> rows;
 };
 
+struct Group {
+    std::vector<ResultValue> key;
+    std::vector<Row> rows;
+};
+
+enum class ColumnName {
+    TRANSACTION_ID, 
+    PRODUCT_ID,     
+    CATEGORY_ID,    
+    PRICE,          
+    QUANTITY,       
+    TIMESTAMP       
+};
+
 Table generate_table(std::uint64_t numRows);

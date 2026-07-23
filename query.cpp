@@ -13,26 +13,58 @@ ResultTable query_table(Table table, Query query){
         }
     }
 
-    if (query.aggregation){
-        ResultTable result_table;
-        ResultRow result_row;
-        result_row.data.push_back(handle_aggregation(filtered_rows, *query.aggregation));
-        result_table.rows.push_back(result_row);
-        return result_table;
+    std::vector<Group> groups;
+    if (query.group_by){
+        for (auto row: filtered_rows){
+            std::vector<ResultValue> newKey;
+            Row newRow = row;
+            for (ColumnName col: *query.group_by){
+                newKey.push_back(getColumnValue(row, col));
+            }
+            bool keyExist = false;
+            for (Group& g: groups){
+                if (g.key == newKey){
+                    keyExist = true;
+                    g.rows.push_back(newRow);
+                }
+            }
+            if (!keyExist){
+                Group newGroup = {
+                    .key = newKey,
+                    .rows = {row}
+                };
+                groups.push_back(newGroup);
+            }
+        }
+    }else{
+        groups.push_back(Group{
+            .key = {},
+            .rows = filtered_rows
+        });
     }
 
     ResultTable result_table;
-    for (auto row: filtered_rows){
-        ResultRow result_row;
-        for (ColumnName column: query.projection){
-            result_row.data.push_back(getColumnValue(row, column));
+    if (query.aggregation){
+        for (Group g: groups){
+            ResultRow curRow;
+            for (ResultValue k: g.key){
+                curRow.data.push_back(k);
+            }
+            curRow.data.push_back(aggregate(g.rows, *query.aggregation));
+            result_table.rows.push_back(curRow);
         }
-        result_table.rows.push_back(result_row);
+        return result_table;
+    }else{
+        for (auto row: filtered_rows){
+            ResultRow result_row;
+            for (ColumnName column: query.projection){
+                result_row.data.push_back(getColumnValue(row, column));
+            }
+            result_table.rows.push_back(result_row);
+        }
+        return result_table;
     }
-    return result_table;
 }
-
-
 
 
 ResultValue getColumnValue(Row row, ColumnName column){

@@ -3,8 +3,6 @@
 #include "table.hpp"
 #include <vector>
 
-enum class ColumnName;
-
 enum class AggregationType {
     NONE,
     COUNT,
@@ -19,4 +17,6 @@ struct Aggregation {
     ColumnName column;
 };
 
-ResultValue handle_aggregation(std::vector<Row> rows, Aggregation aggr);
+ResultValue aggregate(std::vector<Row> rows, Aggregation aggr);
+
+std::vector<ResultValue> aggregate_groups(std::vector<Group> groups, Aggregation aggr);
