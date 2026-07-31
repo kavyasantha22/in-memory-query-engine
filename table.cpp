@@ -4,6 +4,14 @@
 
 Table generate_table(std::uint64_t numRows){
     Table new_table;
+    new_table.column_names = {
+        ColumnName::TRANSACTION_ID,
+        ColumnName::PRODUCT_ID,
+        ColumnName::CATEGORY_ID,
+        ColumnName::PRICE,
+        ColumnName::QUANTITY,
+        ColumnName::TIMESTAMP
+    };
     new_table.rows.resize(numRows);
     auto startTimestamp = std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::system_clock::now().time_since_epoch()

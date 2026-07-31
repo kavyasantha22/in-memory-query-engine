@@ -1,10 +1,20 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 #include <vector>
 #include <variant>
 
 using ResultValue = std::variant<std::uint64_t, std::uint32_t, double, std::int64_t>;
+
+enum class ColumnName {
+    TRANSACTION_ID, 
+    PRODUCT_ID,     
+    CATEGORY_ID,    
+    PRICE,          
+    QUANTITY,       
+    TIMESTAMP       
+};
 
 struct Row {
     std::uint64_t transaction_id;
@@ -16,6 +26,7 @@ struct Row {
 };
 
 struct Table {
+    std::vector<ColumnName> column_names;
     std::vector<Row> rows;
 };
 
@@ -26,21 +37,14 @@ struct ResultRow {
 
 
 struct ResultTable {
+    std::vector<std::string> column_names;
     std::vector<ResultRow> rows;
 };
 
 struct Group {
+    std::vector<ColumnName> key_columns;
     std::vector<ResultValue> key;
     std::vector<Row> rows;
-};
-
-enum class ColumnName {
-    TRANSACTION_ID, 
-    PRODUCT_ID,     
-    CATEGORY_ID,    
-    PRICE,          
-    QUANTITY,       
-    TIMESTAMP       
 };
 
 Table generate_table(std::uint64_t numRows);

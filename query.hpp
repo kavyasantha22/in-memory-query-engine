@@ -15,3 +15,5 @@ struct Query {
 
 ResultTable query_table(Table table, Query query);
 ResultValue getColumnValue(Row row, ColumnName column);
+std::string columnNameToString(ColumnName col);
+std::string aggregatationTypeToString(AggregationType type);
