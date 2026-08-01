@@ -10,14 +10,10 @@
 std::string orderExpressionToString(const OrderExpression& expression) {
     if (const auto* column = std::get_if<ColumnName>(&expression)) {
         return columnNameToString(*column);
+    }else{
+        const auto& aggregation = std::get<Aggregation>(expression);
+        return aggregationToString(aggregation);
     }
-
-    const auto& aggregation = std::get<Aggregation>(expression);
-
-    return aggregatationTypeToString(aggregation.type)
-        + "("
-        + columnNameToString(aggregation.column)
-        + ")";
 }
 
 
@@ -127,7 +123,7 @@ std::vector<Group> buildGroups(
     }
     
     return groups;
-};
+}
 
 
 void applyProjection(
@@ -155,9 +151,7 @@ void applyProjection(
         }
 
         if (aggregation){
-            const std::string aggregation_column_name = 
-                aggregatationTypeToString(aggregation->type) + 
-                "(" + columnNameToString(aggregation->column) + ")";
+            const std::string aggregation_column_name = aggregationToString(*aggregation);
 
             int idx = -1;
             for (size_t i = 0; i < result_table.column_names.size(); i++){
@@ -180,15 +174,13 @@ void applyProjection(
         temp_cols.push_back(columnNameToString(col));
     }
     if (aggregation){
-        const std::string aggregation_column_name = 
-                aggregatationTypeToString(aggregation->type) + 
-                "(" + columnNameToString(aggregation->column) + ")";
+        const std::string aggregation_column_name = aggregationToString(*aggregation);
         temp_cols.push_back(aggregation_column_name);
     }
 
     result_table.rows = temp_rows;
     result_table.column_names = temp_cols;
-};
+}
 
 
 ResultTable buildResultTable(
@@ -219,9 +211,7 @@ ResultTable buildResultTable(const std::vector<Group> groups, const Query query)
 
     if (query.aggregation){
         const Aggregation aggregation = *query.aggregation;
-        const std::string aggregation_column_name = 
-            aggregatationTypeToString(aggregation.type) + 
-            "(" + columnNameToString(aggregation.column) + ")";
+        const std::string aggregation_column_name = aggregationToString(aggregation);
         
         result_table.column_names.push_back(aggregation_column_name);
         for (Group g: groups){

@@ -129,3 +129,10 @@ std::string aggregatationTypeToString(AggregationType type){
 
     throw std::invalid_argument("Unknown aggregation type");
 }
+
+std::string aggregationToString(Aggregation aggregation){
+    return (
+        aggregatationTypeToString(aggregation.type) + 
+        "(" + columnNameToString(aggregation.column) + ")"
+    );
+}

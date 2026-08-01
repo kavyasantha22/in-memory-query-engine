@@ -22,3 +22,5 @@ ResultValue aggregate(std::vector<Row> rows, Aggregation aggr);
 std::vector<ResultValue> aggregate_groups(std::vector<Group> groups, Aggregation aggr);
 
 std::string aggregatationTypeToString(AggregationType type);
+
+std::string aggregationToString(Aggregation aggregation);
