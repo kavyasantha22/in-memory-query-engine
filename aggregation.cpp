@@ -111,7 +111,7 @@ std::vector<ResultValue> aggregate_groups(std::vector<Group> groups, Aggregation
 }
 
 
-std::string aggregatationTypeToString(AggregationType type){
+std::string aggregationTypeToString(AggregationType type){
     switch (type) {
         case AggregationType::NONE:
             return "none";
@@ -132,7 +132,7 @@ std::string aggregatationTypeToString(AggregationType type){
 
 std::string aggregationToString(Aggregation aggregation){
     return (
-        aggregatationTypeToString(aggregation.type) + 
+        aggregationTypeToString(aggregation.type) + 
         "(" + columnNameToString(aggregation.column) + ")"
     );
 }
