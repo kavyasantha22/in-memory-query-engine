@@ -55,7 +55,8 @@ int main(){
                 .expr = ColumnName::TRANSACTION_ID,
                 .ascending = true
             }
-        }
+        },
+        .limit = std::nullopt
     };
     ResultTable single_column_result = query_table(table, single_column_query);
     // printSqlTable("single_column", single_column_result);
@@ -80,7 +81,8 @@ int main(){
             OrderByItem{.expr = ColumnName::CATEGORY_ID, .ascending = true},
             OrderByItem{.expr = ColumnName::PRICE, .ascending = true},
             OrderByItem{.expr = ColumnName::TRANSACTION_ID, .ascending = true}
-        }
+        },
+        .limit = std::nullopt
     };
     ResultTable multiple_column_result = query_table(table, multiple_column_query);
 
@@ -100,7 +102,8 @@ int main(){
         .order_by = std::vector<OrderByItem>{
             OrderByItem{.expr = ColumnName::PRICE, .ascending = true},
             OrderByItem{.expr = ColumnName::TRANSACTION_ID, .ascending = true}
-        }
+        },
+        .limit = std::nullopt
     };
     ResultTable filtered_result = query_table(table, filtered_query);
 
@@ -122,7 +125,8 @@ int main(){
                 .expr = ColumnName::TRANSACTION_ID,
                 .ascending = false
             }
-        }
+        },
+        .limit = std::nullopt
     };
     ResultTable descending_result = query_table(table, descending_query);
 
@@ -139,7 +143,8 @@ int main(){
         .group_by = std::vector<ColumnName>{ColumnName::CATEGORY_ID},
         .order_by = std::vector<OrderByItem>{
             OrderByItem{.expr = ColumnName::CATEGORY_ID, .ascending = true}
-        }
+        },
+        .limit = std::nullopt
     };
     ResultTable grouped_result = query_table(table, grouped_query);
 
@@ -157,7 +162,8 @@ int main(){
                 .expr = Aggregation{AggregationType::SUM, ColumnName::PRICE},
                 .ascending = false
             }
-        }
+        },
+        .limit = std::nullopt
     };
     ResultTable aggregate_result = query_table(table, aggregate_query);
 
@@ -172,7 +178,8 @@ int main(){
         .filter = std::nullopt,
         .aggregation = std::nullopt,
         .group_by = std::nullopt,
-        .order_by = std::nullopt
+        .order_by = std::nullopt,
+        .limit = std::nullopt
     };
     ResultTable no_order_result = query_table(table, no_order_query);
 

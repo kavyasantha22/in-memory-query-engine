@@ -63,6 +63,13 @@ void handle_order_by(ResultTable& result_table, std::vector<OrderByItem> order_b
 }
 
 
+void handle_limit(ResultTable& result_table, size_t limit){
+    while (result_table.rows.size() > limit){
+        result_table.rows.pop_back();
+    }
+};
+
+
 ResultTable query_table(Table table, Query query){
     // This is for filter
     std::vector<Row> filtered_rows;
@@ -97,7 +104,10 @@ ResultTable query_table(Table table, Query query){
         if (query.order_by){
             handle_order_by(result_table, *query.order_by);
         }
-        
+
+        if (query.limit){
+            handle_limit(result_table, *query.limit);
+        }
         return result_table;
     }
 
@@ -200,6 +210,10 @@ ResultTable query_table(Table table, Query query){
     // handle Order By
     if (query.order_by){
         handle_order_by(result_table, *query.order_by);
+    }
+
+    if (query.limit){
+        handle_limit(result_table, *query.limit);
     }
 
     return result_table;

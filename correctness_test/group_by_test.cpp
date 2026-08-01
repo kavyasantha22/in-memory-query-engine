@@ -29,7 +29,8 @@ int main(){
         .group_by = std::vector<ColumnName>{
             ColumnName::CATEGORY_ID
         },
-        .order_by = std::nullopt
+        .order_by = std::nullopt,
+        .limit = std::nullopt
     };
 
     ResultTable result = query_table(table, q);

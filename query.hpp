@@ -20,6 +20,8 @@ struct Query {
     std::optional<Aggregation> aggregation;
     std::optional<std::vector<ColumnName>> group_by;
     std::optional<std::vector<OrderByItem>> order_by;
+    std::optional<size_t> limit;
+
     // std::optional<int> limit;
 };
 

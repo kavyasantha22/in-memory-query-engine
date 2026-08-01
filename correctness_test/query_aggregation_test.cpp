@@ -15,6 +15,7 @@ int main(){
         std::nullopt,
         Aggregation{AggregationType::SUM, ColumnName::PRICE},
         std::nullopt,
+        std::nullopt,
         std::nullopt
     };
     ResultTable sum_result = query_table(table, sum_query);
@@ -28,6 +29,7 @@ int main(){
             return row.category_id == 3;
         },
         Aggregation{AggregationType::COUNT, ColumnName::PRODUCT_ID},
+        std::nullopt,
         std::nullopt,
         std::nullopt
     };
