@@ -253,6 +253,7 @@ ResultTable query_table(Table table, Query query){
     if (filtered_rows.size() == 0){
         ResultTable result_table = buildResultTable(filtered_rows, table.column_names);
         applyProjection(result_table, query.aggregation, query.projection);
+        return result_table;
     } 
 
     ResultTable result_table;
