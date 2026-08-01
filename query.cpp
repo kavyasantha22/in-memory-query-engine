@@ -4,9 +4,66 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <algorithm>
+
+
+std::string orderExpressionToString(const OrderExpression& expression) {
+    if (const auto* column = std::get_if<ColumnName>(&expression)) {
+        return columnNameToString(*column);
+    }
+
+    const auto& aggregation = std::get<Aggregation>(expression);
+
+    return aggregatationTypeToString(aggregation.type)
+        + "("
+        + columnNameToString(aggregation.column)
+        + ")";
+}
+
+class RowComparator {
+public:
+    std::vector<OrderByItem> order_by;
+    std::vector<std::string> column_names;
+
+    bool operator()(const ResultRow& left, const ResultRow& right) const {
+        for (OrderByItem order: order_by){
+            int idxSort = -1;
+            for (int i = 0; i < (int) column_names.size(); i++){
+                std::string expr_str = orderExpressionToString(order.expr);
+                if (column_names[i] == expr_str){
+                    idxSort = i;
+                    break;
+                }
+            }
+            if (idxSort == -1) continue;
+
+            ResultValue left_val = left.data[idxSort];
+            ResultValue right_val = right.data[idxSort];
+            if (
+                (order.ascending && left_val < right_val) ||
+                (!order.ascending && left_val > right_val)
+            ) return true;
+
+            if (
+                (order.ascending && left_val > right_val) ||
+                (!order.ascending && left_val < right_val)
+            ) return false;
+        }
+        return false;
+    }
+};
+
+
+void handle_order_by(ResultTable& result_table, std::vector<OrderByItem> order_by){
+    RowComparator row_comparator = {
+        .order_by = order_by,
+        .column_names = result_table.column_names
+    };
+    sort(result_table.rows.begin(), result_table.rows.end(), row_comparator);
+}
+
 
 ResultTable query_table(Table table, Query query){
-
     // This is for filter
     std::vector<Row> filtered_rows;
     for (auto row: table.rows){
@@ -36,6 +93,11 @@ ResultTable query_table(Table table, Query query){
             }
             result_table.rows.push_back(new_row);
         }
+
+        if (query.order_by){
+            handle_order_by(result_table, *query.order_by);
+        }
+        
         return result_table;
     }
 
@@ -109,7 +171,7 @@ ResultTable query_table(Table table, Query query){
 
     // this is for projection
     // i'm assuming all columns are in result_table.column_names
-    for (int i = result_table.column_names.size() - 1; i >= 0 ; i--){
+    for (int i = (int) result_table.column_names.size() - 1; i >= 0 ; i--){
         int included = false;
         std::string column_name = result_table.column_names[i];
         for (ColumnName col: query.projection){
@@ -135,10 +197,14 @@ ResultTable query_table(Table table, Query query){
         }
     }
 
+    // handle Order By
+    if (query.order_by){
+        handle_order_by(result_table, *query.order_by);
+    }
+
     return result_table;
 
 }
-
 
 ResultValue getColumnValue(Row row, ColumnName column){
     switch (column) {

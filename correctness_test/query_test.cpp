@@ -12,6 +12,8 @@ int main(){
     Query projection_query{
         {ColumnName::PRODUCT_ID, ColumnName::CATEGORY_ID, ColumnName::PRICE},
         std::nullopt,
+        std::nullopt,
+        std::nullopt,
         std::nullopt
     };
     ResultTable projection_result = query_table(table, projection_query);
@@ -27,6 +29,8 @@ int main(){
         [](Row row) {
             return row.category_id == 3;
         },
+        std::nullopt,
+        std::nullopt,
         std::nullopt
     };
     ResultTable filtered_result = query_table(table, filtered_query);
@@ -42,6 +46,8 @@ int main(){
         [](Row row) {
             return row.quantity > 100;
         },
+        std::nullopt,
+        std::nullopt,
         std::nullopt
     };
     ResultTable empty_result = query_table(table, empty_query);
@@ -49,6 +55,8 @@ int main(){
 
     Query timestamp_query{
         {ColumnName::TIMESTAMP},
+        std::nullopt,
+        std::nullopt,
         std::nullopt,
         std::nullopt
     };

@@ -13,7 +13,9 @@ int main(){
     Query sum_query{
         {},
         std::nullopt,
-        Aggregation{AggregationType::SUM, ColumnName::PRICE}
+        Aggregation{AggregationType::SUM, ColumnName::PRICE},
+        std::nullopt,
+        std::nullopt
     };
     ResultTable sum_result = query_table(table, sum_query);
     assert(sum_result.rows.size() == 1);
@@ -25,7 +27,9 @@ int main(){
         [](Row row) {
             return row.category_id == 3;
         },
-        Aggregation{AggregationType::COUNT, ColumnName::PRODUCT_ID}
+        Aggregation{AggregationType::COUNT, ColumnName::PRODUCT_ID},
+        std::nullopt,
+        std::nullopt
     };
     ResultTable filtered_count_result = query_table(table, filtered_count_query);
     assert(filtered_count_result.rows.size() == 1);

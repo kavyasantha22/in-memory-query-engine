@@ -3,7 +3,8 @@ CXXFLAGS := -Wall -Wextra -I.
 QUERY_TEST := query_test_runner
 QUERY_AGGREGATION_TEST := query_aggregation_test_runner
 AGGREGATION_TEST := aggregation_test_runner
-TEST_TARGETS := $(QUERY_TEST) $(QUERY_AGGREGATION_TEST) $(AGGREGATION_TEST)
+ORDER_BY_TEST := order_by_test_runner
+TEST_TARGETS := $(QUERY_TEST) $(QUERY_AGGREGATION_TEST) $(AGGREGATION_TEST) $(ORDER_BY_TEST)
 CORE_SOURCES := query.cpp table.cpp aggregation.cpp formatter.cpp
 HEADERS := query.hpp table.hpp aggregation.hpp formatter.hpp
 
@@ -23,10 +24,14 @@ $(QUERY_AGGREGATION_TEST): correctness_test/query_aggregation_test.cpp $(CORE_SO
 $(AGGREGATION_TEST): correctness_test/aggregation_test.cpp $(CORE_SOURCES) $(HEADERS)
 	$(CXX) $(CXXFLAGS) correctness_test/aggregation_test.cpp $(CORE_SOURCES) -o $(AGGREGATION_TEST)
 
+$(ORDER_BY_TEST): correctness_test/order_by_test.cpp $(CORE_SOURCES) $(HEADERS)
+	$(CXX) $(CXXFLAGS) correctness_test/order_by_test.cpp $(CORE_SOURCES) -o $(ORDER_BY_TEST)
+
 run: $(TEST_TARGETS)
 	./$(QUERY_TEST)
 	./$(QUERY_AGGREGATION_TEST)
 	./$(AGGREGATION_TEST)
+	./$(ORDER_BY_TEST)
 
 clean:
 	rm -f $(TEST_TARGETS) random

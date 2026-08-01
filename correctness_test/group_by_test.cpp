@@ -28,7 +28,8 @@ int main(){
         .aggregation = Aggregation{AggregationType::SUM, ColumnName::PRICE},
         .group_by = std::vector<ColumnName>{
             ColumnName::CATEGORY_ID
-        }
+        },
+        .order_by = std::nullopt
     };
 
     ResultTable result = query_table(table, q);

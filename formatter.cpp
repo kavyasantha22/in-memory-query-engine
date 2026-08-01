@@ -101,3 +101,4 @@ void printSqlTable(const std::string& title, const ResultTable& table){
     printSqlTable(title, table.column_names, rows);
 }
 
+
