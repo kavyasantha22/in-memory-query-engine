@@ -13,7 +13,7 @@ enum class ColumnName {
     CATEGORY_ID,    
     PRICE,          
     QUANTITY,       
-    TIMESTAMP       
+    TIMESTAMP,
 };
 
 struct Row {
@@ -48,3 +48,7 @@ struct Group {
 };
 
 Table generate_table(std::uint64_t numRows);
+
+std::string columnNameToString(ColumnName col);
+
+ResultValue getColumnValue(Row row, ColumnName column);

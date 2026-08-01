@@ -1,5 +1,6 @@
 #include "table.hpp"
 #include <chrono>
+#include <stdexcept>
 
 
 Table generate_table(std::uint64_t numRows){
@@ -25,4 +26,47 @@ Table generate_table(std::uint64_t numRows){
         new_table.rows[i].timestamp = startTimestamp + i;
     }
     return new_table;
+}
+
+std::string columnNameToString(ColumnName col){
+    switch (col) {
+        case ColumnName::TRANSACTION_ID:
+            return "transaction_id";
+        case ColumnName::PRODUCT_ID:
+            return "product_id";
+        case ColumnName::CATEGORY_ID:
+            return "category_id";
+        case ColumnName::PRICE:
+            return "price";
+        case ColumnName::QUANTITY:
+            return "quantity";
+        case ColumnName::TIMESTAMP:
+            return "timestamp";
+    }
+
+    throw std::invalid_argument("Unknown column");
+}
+
+ResultValue getColumnValue(Row row, ColumnName column){
+    switch (column) {
+        case ColumnName::TRANSACTION_ID:
+            return row.transaction_id;
+
+        case ColumnName::PRODUCT_ID:
+            return row.product_id;
+
+        case ColumnName::CATEGORY_ID:
+            return row.category_id;
+
+        case ColumnName::PRICE:
+            return row.price;
+
+        case ColumnName::QUANTITY:
+            return row.quantity;
+
+        case ColumnName::TIMESTAMP:
+            return row.timestamp;
+    }
+
+    throw std::invalid_argument("Unknown column");
 }

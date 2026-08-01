@@ -109,3 +109,23 @@ std::vector<ResultValue> aggregate_groups(std::vector<Group> groups, Aggregation
     }
     return aggregated_values;
 }
+
+
+std::string aggregatationTypeToString(AggregationType type){
+    switch (type) {
+        case AggregationType::NONE:
+            return "none";
+        case AggregationType::COUNT:
+            return "count";
+        case AggregationType::SUM:
+            return "sum";
+        case AggregationType::AVG:
+            return "avg";
+        case AggregationType::MIN:
+            return "min";
+        case AggregationType::MAX:
+            return "max";
+    }
+
+    throw std::invalid_argument("Unknown aggregation type");
+}

@@ -20,6 +20,7 @@ std::string orderExpressionToString(const OrderExpression& expression) {
         + ")";
 }
 
+
 class RowComparator {
 public:
     std::vector<OrderByItem> order_by;
@@ -54,7 +55,7 @@ public:
 };
 
 
-void handle_order_by(ResultTable& result_table, std::vector<OrderByItem> order_by){
+void applyOrderBy(ResultTable& result_table, std::vector<OrderByItem> order_by){
     RowComparator row_comparator = {
         .order_by = order_by,
         .column_names = result_table.column_names
@@ -63,62 +64,41 @@ void handle_order_by(ResultTable& result_table, std::vector<OrderByItem> order_b
 }
 
 
-void handle_limit(ResultTable& result_table, size_t limit){
+void applyLimit(ResultTable& result_table, size_t limit){
     while (result_table.rows.size() > limit){
         result_table.rows.pop_back();
     }
-};
+}
 
 
-ResultTable query_table(Table table, Query query){
-    // This is for filter
+std::vector<Row> filterRows(
+    std::vector<Row> rows,
+    std::optional<std::function<bool(Row)>> filter
+){
+    if (!filter) return rows;
+
     std::vector<Row> filtered_rows;
-    for (auto row: table.rows){
-        if (!query.filter || (*query.filter)(row)){
+    for (auto row: rows){
+        if ((*filter)(row)){
             filtered_rows.push_back(row);
         }
     }
+    
+    return filtered_rows;
+}
 
-    if (filtered_rows.size() == 0){
-        ResultTable result_table;
-        for (ColumnName col: query.projection){
-            result_table.column_names.push_back(columnNameToString(col));
-        }
-        return result_table;
-    } 
 
-    // no group by and no aggregation
-    if (!query.group_by && !query.aggregation){
-        ResultTable result_table;
-        for (ColumnName col: query.projection){
-            result_table.column_names.push_back(columnNameToString(col));
-        }
-        for (Row row: filtered_rows){
-            ResultRow new_row;
-            for (ColumnName col: query.projection){
-                new_row.data.push_back(getColumnValue(row, col));
-            }
-            result_table.rows.push_back(new_row);
-        }
-
-        if (query.order_by){
-            handle_order_by(result_table, *query.order_by);
-        }
-
-        if (query.limit){
-            handle_limit(result_table, *query.limit);
-        }
-        return result_table;
-    }
-
-    // this is for group by
+std::vector<Group> buildGroups(
+    std::vector<Row> filtered_rows, 
+    std::optional<std::vector<ColumnName>> group_by
+){
     std::vector<Group> groups;
-    if (query.group_by){
+    if (group_by){
         for (auto row: filtered_rows){
             std::vector<ResultValue> new_key;
             std::vector<ColumnName> key_columns;
             Row new_row = row;
-            for (ColumnName col: *query.group_by){
+            for (ColumnName col: *group_by){
                 key_columns.push_back(col);
                 new_key.push_back(getColumnValue(row, col));
             }
@@ -138,17 +118,100 @@ ResultTable query_table(Table table, Query query){
                 groups.push_back(newGroup);
             }
         }
-    }else{
+    }else {
         groups.push_back(Group{
-            // i need to add all columnNames,
             .key_columns = {},
-            // and then put everything in both .key and .rows
             .key = {},
             .rows = filtered_rows
         });
     }
+    
+    return groups;
+};
 
-    // this is for aggregation
+
+void applyProjection(
+    ResultTable& result_table, 
+    std::optional<Aggregation> aggregation, 
+    std::vector<ColumnName> projection
+){
+    std::vector<ResultRow> temp_rows;
+    for (ResultRow row: result_table.rows){
+        ResultRow new_row;
+
+        for (ColumnName col: projection){
+            int idx = -1;
+            for (size_t i = 0; i < result_table.column_names.size(); i++){
+                std::string col_name = result_table.column_names[i];
+                if (columnNameToString(col) == col_name){
+                    idx = i;
+                    break;
+                }
+            }
+
+            if (idx != -1){
+                new_row.data.push_back(row.data[idx]);
+            }
+        }
+
+        if (aggregation){
+            const std::string aggregation_column_name = 
+                aggregatationTypeToString(aggregation->type) + 
+                "(" + columnNameToString(aggregation->column) + ")";
+
+            int idx = -1;
+            for (size_t i = 0; i < result_table.column_names.size(); i++){
+                std::string col_name = result_table.column_names[i];
+                if (aggregation_column_name == col_name){
+                    idx = i;
+                    break;
+                }
+            }
+
+            if (idx != -1){
+                new_row.data.push_back(row.data[idx]);
+            }
+        }   
+        temp_rows.push_back(new_row);
+    }
+
+    std::vector<std::string> temp_cols;
+    for (ColumnName col: projection){
+        temp_cols.push_back(columnNameToString(col));
+    }
+    if (aggregation){
+        const std::string aggregation_column_name = 
+                aggregatationTypeToString(aggregation->type) + 
+                "(" + columnNameToString(aggregation->column) + ")";
+        temp_cols.push_back(aggregation_column_name);
+    }
+
+    result_table.rows = temp_rows;
+    result_table.column_names = temp_cols;
+};
+
+
+ResultTable buildResultTable(
+    const std::vector<Row> rows,
+    const std::vector<ColumnName> columns
+){
+    ResultTable result_table;
+    for (ColumnName col: columns){
+        result_table.column_names.push_back(columnNameToString(col));
+    }
+
+    for (Row row: rows){
+        ResultRow new_row;
+        for (ColumnName col: columns){
+            new_row.data.push_back(getColumnValue(row, col));
+        }
+        result_table.rows.push_back(new_row);
+    }
+    return result_table;
+}
+
+
+ResultTable buildResultTable(const std::vector<Group> groups, const Query query){
     ResultTable result_table;
     for (ColumnName col: groups[0].key_columns){
         result_table.column_names.push_back(columnNameToString(col));
@@ -179,107 +242,41 @@ ResultTable query_table(Table table, Query query){
         }
     }
 
-    // this is for projection
-    // i'm assuming all columns are in result_table.column_names
-    for (int i = (int) result_table.column_names.size() - 1; i >= 0 ; i--){
-        int included = false;
-        std::string column_name = result_table.column_names[i];
-        for (ColumnName col: query.projection){
-            if (columnNameToString(col) == column_name){
-                included = true;
-            }
-        }
-        if (query.aggregation){
-            const Aggregation aggregation = *query.aggregation;
-            const std::string aggregation_column_name = 
-                aggregatationTypeToString(aggregation.type) + 
-                "(" + columnNameToString(aggregation.column) + ")";
-
-            if (aggregation_column_name == column_name) included = true;
-        }
-
-
-        if (!included) {
-            result_table.column_names.erase(result_table.column_names.begin() + i);
-            for (ResultRow& row: result_table.rows){
-                row.data.erase(row.data.begin() + i);
-            }
-        }
-    }
-
-    // handle Order By
-    if (query.order_by){
-        handle_order_by(result_table, *query.order_by);
-    }
-
-    if (query.limit){
-        handle_limit(result_table, *query.limit);
-    }
-
     return result_table;
-
 }
 
-ResultValue getColumnValue(Row row, ColumnName column){
-    switch (column) {
-        case ColumnName::TRANSACTION_ID:
-            return row.transaction_id;
 
-        case ColumnName::PRODUCT_ID:
-            return row.product_id;
+ResultTable query_table(Table table, Query query){
+    // This is for filter
+    std::vector<Row> filtered_rows = filterRows(table.rows, query.filter);
 
-        case ColumnName::CATEGORY_ID:
-            return row.category_id;
+    if (filtered_rows.size() == 0){
+        ResultTable result_table = buildResultTable(filtered_rows, table.column_names);
+        applyProjection(result_table, query.aggregation, query.projection);
+    } 
 
-        case ColumnName::PRICE:
-            return row.price;
-
-        case ColumnName::QUANTITY:
-            return row.quantity;
-
-        case ColumnName::TIMESTAMP:
-            return row.timestamp;
+    ResultTable result_table;
+    // no group by and no aggregation
+    if (!query.group_by && !query.aggregation){
+        result_table = buildResultTable(filtered_rows, table.column_names);
+    }else {
+        std::vector<Group> groups = buildGroups(filtered_rows, query.group_by);
+        result_table = buildResultTable(groups, query);
     }
 
-    throw std::invalid_argument("Unknown column");
+    if (query.order_by) 
+        applyOrderBy(result_table, *query.order_by);
+
+    if (query.limit) 
+        applyLimit(result_table, *query.limit);
+        
+    applyProjection(result_table, query.aggregation, query.projection);
+    
+    return result_table;
 }
 
 
-std::string columnNameToString(ColumnName col){
-    switch (col) {
-        case ColumnName::TRANSACTION_ID:
-            return "transaction_id";
-        case ColumnName::PRODUCT_ID:
-            return "product_id";
-        case ColumnName::CATEGORY_ID:
-            return "category_id";
-        case ColumnName::PRICE:
-            return "price";
-        case ColumnName::QUANTITY:
-            return "quantity";
-        case ColumnName::TIMESTAMP:
-            return "timestamp";
-    }
-
-    throw std::invalid_argument("Unknown column");
-}
 
 
-std::string aggregatationTypeToString(AggregationType type){
-    switch (type) {
-        case AggregationType::NONE:
-            return "none";
-        case AggregationType::COUNT:
-            return "count";
-        case AggregationType::SUM:
-            return "sum";
-        case AggregationType::AVG:
-            return "avg";
-        case AggregationType::MIN:
-            return "min";
-        case AggregationType::MAX:
-            return "max";
-    }
 
-    throw std::invalid_argument("Unknown aggregation type");
-}
+
