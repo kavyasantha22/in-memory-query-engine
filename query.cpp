@@ -266,7 +266,7 @@ ResultTable queryTable(Table table, Query query){
     return result_table;
 }
 
-void insertRows(Table& table, Row row){
+void insertRow(Table& table, Row row){
     table.rows.push_back(row);
 }
 

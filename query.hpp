@@ -26,3 +26,5 @@ struct Query {
 };
 
 ResultTable queryTable(Table table, Query query);
+
+void insertRow(Table& table, Row row);
