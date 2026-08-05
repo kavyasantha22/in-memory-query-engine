@@ -22,7 +22,7 @@ double doubleValue(const ResultTable& table, std::size_t row, std::size_t column
 } // namespace
 
 int main(){
-    const Table table = generate_table(10);
+    const Table table = generateTable(10);
 
     Query basic_limit_query{
         .projection = {ColumnName::TRANSACTION_ID},
@@ -32,7 +32,7 @@ int main(){
         .order_by = std::nullopt,
         .limit = 3
     };
-    ResultTable basic_limit_result = query_table(table, basic_limit_query);
+    ResultTable basic_limit_result = queryTable(table, basic_limit_query);
 
     assert(basic_limit_result.rows.size() == 3);
     assert(uint64Value(basic_limit_result, 0, 0) == 0);
@@ -47,7 +47,7 @@ int main(){
         .order_by = std::nullopt,
         .limit = 0
     };
-    ResultTable zero_limit_result = query_table(table, zero_limit_query);
+    ResultTable zero_limit_result = queryTable(table, zero_limit_query);
 
     assert(zero_limit_result.column_names.size() == 1);
     assert(zero_limit_result.rows.empty());
@@ -60,7 +60,7 @@ int main(){
         .order_by = std::nullopt,
         .limit = 10
     };
-    ResultTable equal_limit_result = query_table(table, equal_limit_query);
+    ResultTable equal_limit_result = queryTable(table, equal_limit_query);
     assert(equal_limit_result.rows.size() == 10);
 
     Query oversized_limit_query{
@@ -71,7 +71,7 @@ int main(){
         .order_by = std::nullopt,
         .limit = 20
     };
-    ResultTable oversized_limit_result = query_table(table, oversized_limit_query);
+    ResultTable oversized_limit_result = queryTable(table, oversized_limit_query);
     assert(oversized_limit_result.rows.size() == 10);
 
     Query filtered_limit_query{
@@ -84,7 +84,7 @@ int main(){
         .order_by = std::nullopt,
         .limit = 2
     };
-    ResultTable filtered_limit_result = query_table(table, filtered_limit_query);
+    ResultTable filtered_limit_result = queryTable(table, filtered_limit_query);
 
     assert(filtered_limit_result.rows.size() == 2);
     assert(uint64Value(filtered_limit_result, 0, 0) == 5);
@@ -103,7 +103,7 @@ int main(){
         },
         .limit = 3
     };
-    ResultTable ordered_limit_result = query_table(table, ordered_limit_query);
+    ResultTable ordered_limit_result = queryTable(table, ordered_limit_query);
 
     assert(ordered_limit_result.rows.size() == 3);
     assert(uint64Value(ordered_limit_result, 0, 0) == 9);
@@ -123,7 +123,7 @@ int main(){
         },
         .limit = 3
     };
-    ResultTable grouped_limit_result = query_table(generate_table(20), grouped_limit_query);
+    ResultTable grouped_limit_result = queryTable(generateTable(20), grouped_limit_query);
 
     assert(grouped_limit_result.rows.size() == 3);
     assert(doubleValue(grouped_limit_result, 0, 1) >= doubleValue(grouped_limit_result, 1, 1));
@@ -137,7 +137,7 @@ int main(){
         .order_by = std::nullopt,
         .limit = std::nullopt
     };
-    ResultTable no_limit_result = query_table(table, no_limit_query);
+    ResultTable no_limit_result = queryTable(table, no_limit_query);
 
     assert(no_limit_result.rows.size() == 10);
     assert(uint64Value(no_limit_result, 0, 0) == 0);

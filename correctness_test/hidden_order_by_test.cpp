@@ -59,7 +59,7 @@ int main(){
         },
         .limit = std::nullopt
     };
-    ResultTable hidden_columns_result = query_table(table, hidden_columns_query);
+    ResultTable hidden_columns_result = queryTable(table, hidden_columns_query);
 
     assertSingleOutputColumn(hidden_columns_result, "transaction_id");
     assert(hidden_columns_result.rows.size() == 5);
@@ -82,7 +82,7 @@ int main(){
         },
         .limit = 2
     };
-    ResultTable hidden_filtered_limit_result = query_table(table, hidden_filtered_limit_query);
+    ResultTable hidden_filtered_limit_result = queryTable(table, hidden_filtered_limit_query);
 
     assertSingleOutputColumn(hidden_filtered_limit_result, "transaction_id");
     assert(hidden_filtered_limit_result.rows.size() == 2);
@@ -103,7 +103,7 @@ int main(){
         },
         .limit = std::nullopt
     };
-    ResultTable hidden_group_key_result = query_table(table, hidden_group_key_query);
+    ResultTable hidden_group_key_result = queryTable(table, hidden_group_key_query);
 
     assertSingleOutputColumn(hidden_group_key_result, "product_id");
     assert(hidden_group_key_result.rows.size() == 5);

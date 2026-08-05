@@ -1,0 +1,51 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "QUERY_ENGINE_BUILD_BENCHMARKS": "OFF"
+      }
+    },
+    {
+      "name": "benchmark",
+      "displayName": "Release with benchmarks",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/benchmark-clang",
+      "cacheVariables": {
+        "BUILD_TESTING": "OFF",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+        "QUERY_ENGINE_BUILD_BENCHMARKS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "benchmark",
+      "configurePreset": "benchmark"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

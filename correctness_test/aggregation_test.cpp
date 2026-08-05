@@ -9,7 +9,7 @@
 #include <vector>
 
 int main(){
-    Table table = generate_table(20);
+    Table table = generateTable(20);
 
     assert(std::get<double>(aggregate(table.rows, Aggregation{AggregationType::SUM, ColumnName::PRICE})) == 5063);
     assert(std::get<std::uint64_t>(aggregate(table.rows, Aggregation{AggregationType::COUNT, ColumnName::PRICE})) == 20);

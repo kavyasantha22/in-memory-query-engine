@@ -7,7 +7,7 @@
 #include <variant>
 
 int main(){
-    Table table = generate_table(20);
+    Table table = generateTable(20);
 
     Query projection_query{
         {ColumnName::PRODUCT_ID, ColumnName::CATEGORY_ID, ColumnName::PRICE},
@@ -17,7 +17,7 @@ int main(){
         std::nullopt,
         std::nullopt
     };
-    ResultTable projection_result = query_table(table, projection_query);
+    ResultTable projection_result = queryTable(table, projection_query);
 
     assert(projection_result.rows.size() == 20);
     assert(projection_result.rows[3].data.size() == 3);
@@ -35,7 +35,7 @@ int main(){
         std::nullopt,
         std::nullopt
     };
-    ResultTable filtered_result = query_table(table, filtered_query);
+    ResultTable filtered_result = queryTable(table, filtered_query);
 
     assert(filtered_result.rows.size() == 2);
     assert(std::get<std::uint64_t>(filtered_result.rows[0].data[0]) == 3);
@@ -53,7 +53,7 @@ int main(){
         std::nullopt,
         std::nullopt
     };
-    ResultTable empty_result = query_table(table, empty_query);
+    ResultTable empty_result = queryTable(table, empty_query);
     assert(empty_result.rows.empty());
 
     Query timestamp_query{
@@ -64,7 +64,7 @@ int main(){
         std::nullopt,
         std::nullopt
     };
-    ResultTable timestamp_result = query_table(table, timestamp_query);
+    ResultTable timestamp_result = queryTable(table, timestamp_query);
     assert(std::get<std::int64_t>(timestamp_result.rows[5].data[0]) == table.rows[5].timestamp);
 
     std::cout << "All query tests passed\n";

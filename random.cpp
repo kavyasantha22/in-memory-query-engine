@@ -4,7 +4,7 @@
 #include <optional>
 
 int main(){
-    Table table = generate_table(0);
+    Table table = generateTable(0);
     printSqlTable("Initial Table", table);
     Query query = {
         .projection = {ColumnName::CATEGORY_ID},
@@ -15,7 +15,7 @@ int main(){
         },
         .group_by = std::vector<ColumnName>{ColumnName::CATEGORY_ID},
     };
-    ResultTable rTable = query_table(table, query);
+    ResultTable rTable = queryTable(table, query);
     printSqlTable("Result", rTable);
     return 0;
 }

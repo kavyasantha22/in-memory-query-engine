@@ -19,7 +19,7 @@ struct Aggregation {
 
 ResultValue aggregate(std::vector<Row> rows, Aggregation aggr);
 
-std::vector<ResultValue> aggregate_groups(std::vector<Group> groups, Aggregation aggr);
+std::vector<ResultValue> aggregateGroups(std::vector<Group> groups, Aggregation aggr);
 
 std::string aggregationTypeToString(AggregationType type);
 

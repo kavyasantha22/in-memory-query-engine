@@ -12,7 +12,7 @@
 #include <vector>
 
 int main(){
-    Table table = generate_table(20);
+    Table table = generateTable(20);
     printSqlTable("generated table", table);
 
     Query q = {
@@ -33,6 +33,6 @@ int main(){
         .limit = std::nullopt
     };
 
-    ResultTable result = query_table(table, q);
+    ResultTable result = queryTable(table, q);
     printSqlTable("group by result", result);
 }

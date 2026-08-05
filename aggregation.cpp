@@ -5,7 +5,7 @@
 #include <variant>
 
 
-double calculate_sum(std::vector<Row> rows, ColumnName column){
+double calculateSum(std::vector<Row> rows, ColumnName column){
     double sum = 0;
     for (auto row: rows){
         sum += std::visit(
@@ -19,7 +19,7 @@ double calculate_sum(std::vector<Row> rows, ColumnName column){
 }
 
 
-uint64_t calculate_count(std::vector<Row> rows, ColumnName column){
+uint64_t calculateCount(std::vector<Row> rows, ColumnName column){
     (void)column;
     int64_t c = 0;
     for (auto row: rows){
@@ -30,14 +30,14 @@ uint64_t calculate_count(std::vector<Row> rows, ColumnName column){
 }
 
 
-double calculate_avg(std::vector<Row> rows, ColumnName column){
-    double sum = calculate_sum(rows, column);
-    int64_t count = calculate_count(rows, column);
+double calculateAvg(std::vector<Row> rows, ColumnName column){
+    double sum = calculateSum(rows, column);
+    int64_t count = calculateCount(rows, column);
     return sum / count;
 }
 
 
-double calculate_max(std::vector<Row> rows, ColumnName column){
+double calculateMax(std::vector<Row> rows, ColumnName column){
     if (rows.size() == 0) return 0;
     double mx = std::visit(
         [](auto x){
@@ -61,7 +61,7 @@ double calculate_max(std::vector<Row> rows, ColumnName column){
 }
 
 
-double calculate_min(std::vector<Row> rows, ColumnName column){
+double calculateMin(std::vector<Row> rows, ColumnName column){
     if (rows.size() == 0) return 0;
     double mn = std::visit(
         [](auto x){
@@ -87,21 +87,21 @@ double calculate_min(std::vector<Row> rows, ColumnName column){
 ResultValue aggregate(std::vector<Row> rows, Aggregation aggr){
     switch (aggr.type){
         case AggregationType::AVG:
-            return calculate_avg(rows, aggr.column);
+            return calculateAvg(rows, aggr.column);
         case AggregationType::COUNT:
-            return calculate_count(rows, aggr.column);
+            return calculateCount(rows, aggr.column);
         case AggregationType::MAX:
-            return calculate_max(rows, aggr.column);
+            return calculateMax(rows, aggr.column);
         case AggregationType::MIN:
-            return calculate_min(rows, aggr.column);
+            return calculateMin(rows, aggr.column);
         case AggregationType::SUM:
-            return calculate_sum(rows, aggr.column);
+            return calculateSum(rows, aggr.column);
         default:
             throw std::invalid_argument("Unknown aggregation type");
     }
 }
 
-std::vector<ResultValue> aggregate_groups(std::vector<Group> groups, Aggregation aggr){
+std::vector<ResultValue> aggregateGroups(std::vector<Group> groups, Aggregation aggr){
     std::vector<ResultValue> aggregated_values;
     for (Group g: groups){
         ResultValue val = aggregate(g.rows, aggr);

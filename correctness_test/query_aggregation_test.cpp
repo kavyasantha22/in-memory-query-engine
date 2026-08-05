@@ -8,7 +8,7 @@
 #include <variant>
 
 int main(){
-    Table table = generate_table(20);
+    Table table = generateTable(20);
 
     Query sum_query{
         {},
@@ -18,7 +18,7 @@ int main(){
         std::nullopt,
         std::nullopt
     };
-    ResultTable sum_result = query_table(table, sum_query);
+    ResultTable sum_result = queryTable(table, sum_query);
     assert(sum_result.rows.size() == 1);
     assert(sum_result.rows[0].data.size() == 1);
     assert(std::get<double>(sum_result.rows[0].data[0]) == 5063);
@@ -33,7 +33,7 @@ int main(){
         std::nullopt,
         std::nullopt
     };
-    ResultTable filtered_count_result = query_table(table, filtered_count_query);
+    ResultTable filtered_count_result = queryTable(table, filtered_count_query);
     assert(filtered_count_result.rows.size() == 1);
     assert(filtered_count_result.rows[0].data.size() == 1);
     assert(std::get<std::uint64_t>(filtered_count_result.rows[0].data[0]) == 2);

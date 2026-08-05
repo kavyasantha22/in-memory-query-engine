@@ -58,7 +58,7 @@ int main(){
         },
         .limit = std::nullopt
     };
-    ResultTable single_column_result = query_table(table, single_column_query);
+    ResultTable single_column_result = queryTable(table, single_column_query);
     // printSqlTable("single_column", single_column_result);
 
     assert(single_column_result.rows.size() == 5);
@@ -84,7 +84,7 @@ int main(){
         },
         .limit = std::nullopt
     };
-    ResultTable multiple_column_result = query_table(table, multiple_column_query);
+    ResultTable multiple_column_result = queryTable(table, multiple_column_query);
 
     assert(uint64Value(multiple_column_result, 0, 2) == 20);
     assert(uint64Value(multiple_column_result, 1, 2) == 50);
@@ -105,7 +105,7 @@ int main(){
         },
         .limit = std::nullopt
     };
-    ResultTable filtered_result = query_table(table, filtered_query);
+    ResultTable filtered_result = queryTable(table, filtered_query);
 
     assert(filtered_result.rows.size() == 3);
     assert(uint64Value(filtered_result, 0, 0) == 20);
@@ -128,7 +128,7 @@ int main(){
         },
         .limit = std::nullopt
     };
-    ResultTable descending_result = query_table(table, descending_query);
+    ResultTable descending_result = queryTable(table, descending_query);
 
     assert(uint64Value(descending_result, 0, 0) == 50);
     assert(uint64Value(descending_result, 1, 0) == 40);
@@ -146,7 +146,7 @@ int main(){
         },
         .limit = std::nullopt
     };
-    ResultTable grouped_result = query_table(table, grouped_query);
+    ResultTable grouped_result = queryTable(table, grouped_query);
 
     assert(grouped_result.rows.size() == 2);
     assert(uint64Value(grouped_result, 0, 0) == 1);
@@ -165,7 +165,7 @@ int main(){
         },
         .limit = std::nullopt
     };
-    ResultTable aggregate_result = query_table(table, aggregate_query);
+    ResultTable aggregate_result = queryTable(table, aggregate_query);
 
     assert(aggregate_result.rows.size() == 2);
     assert(uint64Value(aggregate_result, 0, 0) == 2);
@@ -181,7 +181,7 @@ int main(){
         .order_by = std::nullopt,
         .limit = std::nullopt
     };
-    ResultTable no_order_result = query_table(table, no_order_query);
+    ResultTable no_order_result = queryTable(table, no_order_query);
 
     assert(uint64Value(no_order_result, 0, 0) == 40);
     assert(uint64Value(no_order_result, 1, 0) == 10);

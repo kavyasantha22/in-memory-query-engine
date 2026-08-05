@@ -236,7 +236,7 @@ ResultTable buildResultTable(const std::vector<Group> groups, const Query query)
 }
 
 
-ResultTable query_table(Table table, Query query){
+ResultTable queryTable(Table table, Query query){
     // This is for filter
     std::vector<Row> filtered_rows = filterRows(table.rows, query.filter);
 
@@ -265,7 +265,6 @@ ResultTable query_table(Table table, Query query){
     
     return result_table;
 }
-
 
 
 

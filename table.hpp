@@ -47,7 +47,7 @@ struct Group {
     std::vector<Row> rows;
 };
 
-Table generate_table(std::uint64_t numRows);
+Table generateTable(std::uint64_t numRows);
 
 std::string columnNameToString(ColumnName col);
 

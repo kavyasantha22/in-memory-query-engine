@@ -25,4 +25,4 @@ struct Query {
     // std::optional<int> limit;
 };
 
-ResultTable query_table(Table table, Query query);
+ResultTable queryTable(Table table, Query query);

@@ -3,7 +3,7 @@
 #include <stdexcept>
 
 
-Table generate_table(std::uint64_t numRows){
+Table generateTable(std::uint64_t numRows){
     Table new_table;
     new_table.column_names = {
         ColumnName::TRANSACTION_ID,
