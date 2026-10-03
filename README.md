@@ -3,6 +3,13 @@
 A small C++20 query engine with filtering, projection, aggregation, grouping,
 ordering, limits, correctness tests, and performance benchmarks.
 
+The `main` branch is the development branch. The separate `baseline` branch
+preserves the reference implementation for performance comparisons. Benchmark
+results under `build/` are local measurements and are not committed.
+
+Read the [engine design and workflow](docs/engine-design.md) for execution
+stages, design tradeoffs, advantages, and current limitations.
+
 ## Project layout
 
 ```text
@@ -32,3 +39,6 @@ cmake --build --preset benchmark --target run_general_benchmarks
 See the [benchmark guide](docs/benchmarks.md),
 [result interpretation guide](docs/benchmark-interpretation.md), and
 [CMake guide](docs/cmake.md) for details.
+
+The [branch comparison workflow](docs/benchmarks.md#baseline-branch) explains
+how to compare development changes with the reference implementation.

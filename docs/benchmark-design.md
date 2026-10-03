@@ -513,7 +513,7 @@ shows the cost of allocation and relocation. C dynamic arrays require the same
 capacity strategy, but the programmer implements it manually with `realloc` or
 allocate-copy-free logic.
 
-## Deterministic data and selectivity
+## Predictable data and selectivity
 
 Every benchmark uses `generateTable` rather than random input. The generated
 columns have stable cardinalities:
@@ -524,6 +524,11 @@ columns have stable cardinalities:
 
 These properties produce controlled grouping workloads. Filters use arithmetic
 predicates that deterministically select 0%, 1%, 10%, 50%, or 100% of rows.
+
+The timestamp base is taken from the current system clock, so the complete
+dataset is not identical across runs. Current benchmark queries do not filter,
+group, or sort by timestamp. Fully repeatable timestamps remain a roadmap item
+before adding workloads whose behavior depends on their absolute values.
 
 Determinism matters because input changes can affect branch prediction, group
 sizes, comparison counts, and memory use. A baseline should differ because the

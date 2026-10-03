@@ -15,6 +15,48 @@ guided tour of the C++ features it uses, see
 For guidance on reading timings, throughput, Big-O coefficients, RMS errors,
 and baseline changes, see [Interpreting Benchmark Results](benchmark-interpretation.md).
 
+## Baseline branch
+
+`main` is the development branch. The separate `baseline` branch preserves the
+reference implementation for performance comparisons. A branch identifies
+source code; `general-baseline.json` contains machine-specific measurements.
+Checking out a branch does not create or restore that ignored timing file.
+
+To compare changes on `main`, create a reference worktree from the project root:
+
+```sh
+git worktree add ../QueryEngine-baseline baseline
+cd ../QueryEngine-baseline
+cmake --preset benchmark
+cmake --build --preset benchmark --target save_general_benchmark_baseline
+```
+
+Return to the development checkout, build it, and copy the reference timings:
+
+```sh
+cd ../QueryEngine
+cmake --preset benchmark
+cmake --build --preset benchmark
+mkdir -p build/benchmark-clang/benchmark-results
+cp ../QueryEngine-baseline/build/benchmark-clang/benchmark-results/general-baseline.json \
+   build/benchmark-clang/benchmark-results/general-baseline.json
+cmake --build --preset benchmark --target run_general_benchmarks
+```
+
+These paths assume the development checkout is named `QueryEngine`; adjust
+them if your checkout has a different name. Create the reference worktree once
+and reuse it for later measurements.
+
+The development summary now compares against the reference implementation.
+Running `save_general_benchmark_baseline` in the development checkout replaces
+that comparison file with measurements of the development code. Use it there
+only when deliberately establishing a new local reference.
+
+Use identical workload definitions, compiler and build settings, and the same
+machine under similar conditions. For small changes, repeat and alternate
+reference and candidate measurements. Record both commit IDs with results you
+retain for later comparison.
+
 ## Build
 
 Configure and build the optimized benchmark targets:
@@ -61,7 +103,7 @@ complete queries, and insertion, and 100K rows for ordering. These sizes make
 the cases large enough to expose meaningful costs without turning the general
 report into a stress test.
 
-Save the current general report as the local baseline:
+To establish the current checkout as a new local timing reference, run:
 
 ```sh
 cmake --build --preset benchmark --target save_general_benchmark_baseline
@@ -72,6 +114,9 @@ This runs the general suite and copies the summary to:
 ```text
 build/benchmark-clang/benchmark-results/general-baseline.json
 ```
+
+For comparisons against the `baseline` branch, capture this file in its
+reference worktree and copy it here as described above.
 
 Later general runs automatically compare matching cases with that file. The
 console and JSON summary then show percentage changes. A positive time change

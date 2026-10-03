@@ -1,5 +1,8 @@
 # In-Memory Query Engine — Features and Roadmap
 
+Status reviewed against the `main` branch on 3 October 2026.
+Implemented behavior and remaining correctness coverage are listed separately.
+
 ## 1. Project Overview
 
 This project is a small in-memory analytical query engine written in C++.
@@ -80,6 +83,7 @@ The table currently uses a row-store representation:
 
 ```cpp
 struct Table {
+    std::vector<ColumnName> column_names;
     std::vector<Row> rows;
 };
 ```
@@ -97,10 +101,20 @@ Queries are represented as C++ objects.
 The current query model contains:
 
 ```cpp
+using OrderExpression = std::variant<ColumnName, Aggregation>;
+
+struct OrderByItem {
+    OrderExpression expr;
+    bool ascending;
+};
+
 struct Query {
     std::vector<ColumnName> projection;
     std::optional<std::function<bool(Row)>> filter;
     std::optional<Aggregation> aggregation;
+    std::optional<std::vector<ColumnName>> group_by;
+    std::optional<std::vector<OrderByItem>> order_by;
+    std::optional<std::size_t> limit;
 };
 ```
 
@@ -155,7 +169,15 @@ SELECT COUNT(product_id)
 SELECT AVG(quantity)
 ```
 
-For the current non-grouped aggregation implementation, projection is ignored when an aggregation is present.
+Only one aggregation can be selected per query. For valid non-grouped aggregate
+queries, projection is empty and the aggregate is returned as one value.
+Grouped queries can project grouping keys, with the selected aggregate appended.
+Unrelated projected columns are not currently rejected by query validation.
+
+Grouping supports multiple columns and the numeric types in `ResultValue`.
+Ordering supports multiple expressions with independent directions, including
+hidden source columns, hidden group keys, and the selected aggregate. An
+order-only aggregate that differs from the selected aggregate is not computed.
 
 ---
 
@@ -184,11 +206,15 @@ A query returns:
 
 ```cpp
 struct ResultTable {
+    std::vector<std::string> column_names;
     std::vector<ResultRow> rows;
 };
 ```
 
-A scalar aggregation is currently represented as a `ResultTable` containing one row with one value.
+A scalar aggregation over nonempty filtered input is represented as a
+`ResultTable` containing one row with one value. Empty filtered input currently
+returns no rows, including for scalar aggregation; this behavior still needs
+an explicit contract and query-level tests.
 
 ---
 
@@ -232,8 +258,19 @@ A scalar aggregation is currently represented as a `ResultTable` containing one 
 - [x] `MIN`
 - [x] `MAX`
 - [x] Aggregation after filtering
-- [x] Aggregation integrated into `query_table`
-- [x] Aggregation returned as a one-value result row
+- [x] Aggregation integrated into `queryTable`
+- [x] Scalar aggregation returned as a one-value result row for nonempty input
+
+### Grouping, ordering, limits, and insertion
+
+- [x] Single- and multiple-column grouping
+- [x] Numeric variant grouping keys and complete rows stored per group
+- [x] Grouping with and without aggregation
+- [x] Ascending, descending, and multiple-expression ordering
+- [x] Hidden source-column and group-key ordering
+- [x] Ordering by the selected aggregate
+- [x] Limits after ordering, including zero and oversized limits
+- [x] Row insertion through `insertRow`
 
 ### Testing and build workflow
 
@@ -243,50 +280,64 @@ A scalar aggregation is currently represented as a `ResultTable` containing one 
 - [x] Empty-result tests for several aggregations
 - [x] Makefile test targets
 - [x] Separate test executables
+- [x] CMake presets and seven registered correctness executables
+- [x] Google Benchmark general, detailed, and stress suites
+- [x] Grouped JSON summaries, medians, throughput, and local baseline comparison
 
 ---
 
 ## Current baseline execution flow
 
-### Projection query
+### Detail query (no grouping or aggregation)
 
 ```text
 Copy input table
     ↓
-Scan all rows
+Filter input rows, or copy them unchanged when no filter is supplied
     ↓
 Copy matching rows into filtered_rows
     ↓
-Scan filtered_rows
+Materialize all table columns as result values
     ↓
-Extract projected values
+Apply ORDER BY and then LIMIT, when supplied
+    ↓
+Project selected columns in query order
     ↓
 Return ResultTable
 ```
 
-### Aggregation query
+### Grouping or aggregation query
 
 ```text
 Copy input table
     ↓
-Scan all rows
+Filter input rows, or copy them unchanged when no filter is supplied
     ↓
 Copy matching rows into filtered_rows
     ↓
-Pass filtered_rows into aggregation
+Build groups by comparing keys against a vector of existing groups
     ↓
-Repeatedly copy and scan rows
+Without GROUP BY, use one group containing all filtered rows
     ↓
-Return one-row ResultTable
+Build result rows from group keys and the optional aggregate
+    ↓
+Apply ORDER BY and LIMIT, then project keys and append the aggregate
+    ↓
+Return ResultTable
 ```
 
 This is deliberately inefficient and is useful as the baseline for future optimization experiments.
 
+Empty filtered input takes an early return before grouping, aggregation,
+ordering, and limiting. Aggregation functions and intermediate builders still
+copy their inputs. Grouping searches existing groups linearly rather than using
+a hash map.
+
 ---
 
-# 7. Features Yet to Implement
+# 7. Functional Features and Remaining Coverage
 
-## Phase 1 — Finish functional query features
+## Phase 1 — Verify and complete the functional baseline
 
 ### 7.1 Single-column `GROUP BY`
 
@@ -300,31 +351,27 @@ GROUP BY category_id;
 
 Initial implementation requirements:
 
-- [ ] Add an optional `group_by` field to `Query`
-- [ ] Support one grouping column
-- [ ] Partition filtered rows into groups
-- [ ] Store complete rows inside each group
-- [ ] Run the existing aggregation function for every group
-- [ ] Return one result row per group
-- [ ] Include the group key and aggregate value in each result row
+- [x] Add an optional `group_by` field to `Query`
+- [x] Support one or multiple grouping columns
+- [x] Partition filtered rows into groups
+- [x] Store complete rows inside each group
+- [x] Run the existing aggregation function for every group
+- [x] Return one result row per group
+- [x] Include projected group keys and the aggregate value in each result row
 
-Recommended initial representation:
+Current representation:
 
 ```cpp
-std::unordered_map<std::uint64_t, std::vector<Row>>
+std::vector<Group>
 ```
 
-Initially, grouping may be restricted to `std::uint64_t` columns such as:
-
-- `transaction_id`
-- `product_id`
-- `category_id`
-
-Later, grouping can support every `ResultValue` type.
+Each `Group` contains `key_columns`, a `std::vector<ResultValue>` key, and
+complete input rows. Numeric variant keys already exist. Hash-based grouping
+remains a possible optimization.
 
 Required tests:
 
-- [ ] Grouped `SUM`
+- [x] Grouped `SUM` assertions in ordering and limit tests
 - [ ] Grouped `COUNT`
 - [ ] Grouped `AVG`
 - [ ] Grouped `MIN`
@@ -333,6 +380,11 @@ Required tests:
 - [ ] Empty grouped input
 - [ ] One group
 - [ ] Many groups
+
+The dedicated `group_by_test.cpp` currently prints a grouped SUM result but
+contains no assertions. Multiple-key grouping without aggregation is asserted
+in the hidden-ordering tests. The remaining cases above need focused tests,
+even though the same aggregate dispatch implements them.
 
 ---
 
@@ -348,34 +400,31 @@ ORDER BY price;
 
 Initial implementation requirements:
 
-- [ ] Add optional ordering information to `Query`
-- [ ] Support one result column
-- [ ] Support ascending order
-- [ ] Support descending order
-- [ ] Sort the materialized result using `std::sort`
-- [ ] Compare values stored inside `ResultValue`
+- [x] Add optional ordering information to `Query`
+- [x] Support one or multiple ordering expressions
+- [x] Support ascending order
+- [x] Support descending order
+- [x] Sort the materialized result using `std::sort`
+- [x] Compare values stored inside `ResultValue`
 
-Possible representation:
+Current representation:
 
 ```cpp
-enum class SortDirection {
-    ASCENDING,
-    DESCENDING
-};
+using OrderExpression = std::variant<ColumnName, Aggregation>;
 
-struct OrderBy {
-    std::size_t result_column_index;
-    SortDirection direction;
+struct OrderByItem {
+    OrderExpression expr;
+    bool ascending;
 };
 ```
 
 Required tests:
 
-- [ ] Ascending numeric sort
-- [ ] Descending numeric sort
+- [x] Ascending numeric sort
+- [x] Descending numeric sort
 - [ ] Empty result
 - [ ] One-row result
-- [ ] Duplicate values
+- [x] Duplicate values with additional ordering expressions
 
 ---
 
@@ -391,13 +440,13 @@ LIMIT 10;
 
 Initial implementation requirements:
 
-- [ ] Add an optional limit to `Query`
-- [ ] Apply the limit after projection or aggregation
-- [ ] Return at most the requested number of rows
-- [ ] Handle a limit larger than the result size
-- [ ] Handle a limit of zero
+- [x] Add an optional limit to `Query`
+- [x] Apply the limit after aggregation and ordering, before final projection
+- [x] Return at most the requested number of rows
+- [x] Handle a limit larger than the result size
+- [x] Handle a limit of zero
 
-Possible representation:
+Current representation:
 
 ```cpp
 std::optional<std::size_t> limit;
@@ -405,11 +454,11 @@ std::optional<std::size_t> limit;
 
 Required tests:
 
-- [ ] Limit smaller than result
-- [ ] Limit equal to result size
-- [ ] Limit larger than result
-- [ ] Limit zero
-- [ ] Limit after sorting
+- [x] Limit smaller than result
+- [x] Limit equal to result size
+- [x] Limit larger than result
+- [x] Limit zero
+- [x] Limit after sorting
 
 ---
 
@@ -417,13 +466,18 @@ Required tests:
 
 The engine should reject unsupported or contradictory query combinations.
 
-Examples:
+Validation status and applicable query rules:
 
-- [ ] `GROUP BY` without aggregation, if not supported
+- [x] `GROUP BY` without aggregation is supported; it need not be rejected
 - [ ] Aggregation mixed with unrelated projected columns
-- [ ] Unsupported grouping key type
-- [ ] Invalid order-by result index
-- [ ] `AggregationType::NONE` passed as an active aggregation
+- [ ] Invalid column identifiers or unsupported future grouping key types
+- [ ] Unavailable order-by expressions (currently silently skipped)
+- [x] `aggregate()` rejects an active `AggregationType::NONE`
+- [ ] Consistent query-level validation before execution, including empty input
+
+Ordering uses expressions rather than user-supplied result indexes. There is no
+central query validator. Lower-level helpers reject some invalid identifiers,
+but an empty-input early return can bypass aggregation validation.
 
 For the first version, throwing `std::invalid_argument` is sufficient.
 
@@ -434,19 +488,28 @@ For the first version, throwing `std::invalid_argument` is sufficient.
 Define and test the behavior of:
 
 - [ ] `AVG` over zero rows
-- [ ] `MIN` over zero rows
-- [ ] `MAX` over zero rows
+- [x] Direct `aggregate()` returns zero for empty `MIN`, with a test
+- [x] Direct `aggregate()` returns zero for empty `MAX`, with a test
 - [ ] Empty projection
 - [ ] Empty table
-- [ ] Filter matching zero rows
+- [x] Detail query with a filter matching zero rows
+- [ ] Empty scalar and grouped query contracts and assertions
 - [ ] Integer-to-double conversion during aggregation
 - [ ] Floating-point comparison in tests
 
 The current implementation returns zero for empty `MIN` and `MAX`. This should be explicitly documented as a project decision or later changed to an optional/null result.
 
+Direct empty `AVG` divides zero by zero without an explicit empty-input branch.
+The scalar query API returns no rows on empty input instead of calling the
+aggregate. Tests should distinguish these two execution paths.
+
 ---
 
 # 8. Baseline Completion Milestone
+
+The required execution paths below are implemented. The functional feature
+milestone has been reached, but complete validation and edge-case coverage
+remain pending as described in section 7.
 
 The functional baseline is complete when the engine can execute:
 
@@ -489,7 +552,11 @@ Do not optimize these behaviors until the complete baseline has correctness test
 
 # 9. Benchmarking Roadmap
 
-Before optimizing, create stable benchmark workloads.
+The harness is implemented with 82 detailed cases, 18 representative general
+cases, and five stress cases. See [Benchmark Guide](benchmarks.md) for running
+them and [Interpreting Benchmark Results](benchmark-interpretation.md) for
+reading the output. The SQL examples below are workload ideas; the exact
+registered cases and input sizes are defined in `benchmarks/`.
 
 ## Dataset sizes
 
@@ -561,10 +628,14 @@ LIMIT 100;
 
 Initially measure:
 
-- [ ] Execution duration
-- [ ] Rows processed per second
-- [ ] Result row count
-- [ ] Correctness against expected results
+- [x] Execution duration
+- [x] Rows processed per second
+- [x] Query and insertion result row-count checks
+- [ ] Full value, schema, and ordering correctness checks within benchmarks
+
+Correctness executables already validate several expected values separately.
+Direct aggregation benchmarks currently preserve the result against compiler
+elimination but do not verify the value.
 
 Later measure:
 
@@ -613,6 +684,8 @@ Purpose:
 
 ## Optimization 2 — Move result rows
 
+Pending in query execution: intermediate and result vectors still use copies.
+
 Replace copies such as:
 
 ```cpp
@@ -640,6 +713,10 @@ Purpose:
 ---
 
 ## Optimization 3 — Reserve vector capacity
+
+Partially present: generation pre-sizes its row vector, and reserved insertion
+benchmarks explicitly call `reserve()`. Reserving query intermediates remains
+pending.
 
 Reserve storage for:
 
@@ -801,8 +878,12 @@ Benchmark row store and column store using identical datasets and queries.
 Baseline:
 
 ```cpp
-std::unordered_map<GroupKey, std::vector<Row>>
+std::vector<Group>  // each group contains a key and complete input rows
 ```
+
+Each input key is compared against existing groups by linear search. With many
+distinct keys this can require quadratic work. A hash map would itself be a
+change from this baseline.
 
 Possible improvements:
 
@@ -897,9 +978,9 @@ This is an advanced phase and should come after storage-layout optimization.
 - [x] Filtering
 - [x] Projection
 - [x] Scalar aggregation
-- [ ] Single-column `GROUP BY`
-- [ ] `ORDER BY`
-- [ ] `LIMIT`
+- [x] Single- and multiple-column `GROUP BY`
+- [x] `ORDER BY`, including multiple expressions and hidden columns
+- [x] `LIMIT`
 - [ ] Query validation
 - [ ] Complete edge-case tests
 
@@ -911,14 +992,16 @@ Deliverable:
 
 ## Stage 2 — Benchmark harness
 
-- [ ] Generate repeatable datasets
-- [ ] Define fixed benchmark queries
-- [ ] Add timing utilities
-- [ ] Run warm-up iterations
-- [ ] Run repeated measurements
-- [ ] Report median execution time
-- [ ] Verify outputs during benchmarks
-- [ ] Save baseline results
+- [x] Generate predictable numeric datasets
+- [ ] Make generated timestamps repeatable
+- [x] Define fixed benchmark queries
+- [x] Integrate Google Benchmark timing and calibration
+- [ ] Configure dedicated warm-up iterations (calibration is already present)
+- [x] Run repeated measurements
+- [x] Report median execution time
+- [x] Verify query and insertion row counts during benchmarks
+- [ ] Verify full output values, schemas, and ordering during benchmarks
+- [x] Save baseline results and compare grouped JSON summaries
 
 Deliverable:
 
@@ -929,9 +1012,9 @@ Deliverable:
 ## Stage 3 — Basic C++ optimizations
 
 - [ ] Remove unnecessary copies
-- [ ] Use references
-- [ ] Use move semantics
-- [ ] Reserve vectors
+- [ ] Replace expensive production parameter copies with references
+- [ ] Use move semantics for query intermediates and result rows
+- [ ] Reserve query intermediate vectors (generation and insertion already do)
 - [ ] Reduce temporary objects
 - [ ] Reduce repeated scans
 
@@ -987,11 +1070,12 @@ Deliverable:
 
 ## Stage 7 — Optional extensions
 
-These are optional and should only be attempted after the main goals are complete:
+Most of these remain optional future extensions. Two originally optional
+grouping capabilities are already implemented:
 
 - [ ] Multiple aggregation expressions
-- [ ] Multiple `GROUP BY` columns
-- [ ] Generic group-key variants
+- [x] Multiple `GROUP BY` columns
+- [x] Numeric group-key variants using `ResultValue`
 - [ ] Computed expressions such as `price * quantity`
 - [ ] Aliases for result columns
 - [ ] Null values
@@ -1007,31 +1091,27 @@ These are optional and should only be attempted after the main goals are complet
 
 # 12. Recommended Immediate Next Step
 
-Implement single-column grouped aggregation.
+Grouping, ordering, limits, and the benchmark harness are already implemented.
+The `main` branch is the development branch. The separate `baseline` branch
+preserves the reference implementation for performance comparisons. Capture
+fresh reference measurements locally; timing files stay under the ignored
+`build/` directory.
 
-The first supported grouped query should be equivalent to:
+Recommended order:
 
-```sql
-SELECT category_id, SUM(price)
-FROM sales
-GROUP BY category_id;
-```
+1. Define the supported-query contract, including empty aggregation and invalid
+   projection or ordering combinations. Decide which validation belongs in this
+   deliberately small project.
+2. Add assertions to the group-by test and cover grouped aggregate types,
+   filtering before grouping, empty input, and multiple grouping-key types.
+3. Cover the chosen empty-input and empty-projection contracts at query level.
+4. Keep the reference revision and benchmark workloads fixed for comparisons.
+5. On an optimization branch, start with removing unnecessary parameter copies.
+6. Run correctness tests and compare fresh reference and candidate measurements
+   on the same machine using the [branch comparison workflow](benchmarks.md#baseline-branch).
 
-Suggested order:
-
-1. Add `std::optional<ColumnName> group_by` to `Query`.
-2. Filter the input rows using the existing logic.
-3. Partition filtered rows by `category_id`.
-4. Store complete `Row` objects in each group.
-5. Run the existing aggregation function on each group.
-6. Produce result rows containing:
-
-```text
-[group key, aggregate value]
-```
-
-7. Add grouped aggregation correctness tests.
-8. Only then proceed to `ORDER BY`.
+Further engine optimizations should remain separate experiments. Preserve the
+chosen result semantics and report repeatable measurements for each change.
 
 ---
 
