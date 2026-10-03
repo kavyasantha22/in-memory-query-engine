@@ -26,7 +26,7 @@ For the optimized benchmark configuration:
 ```sh
 cmake --preset benchmark
 cmake --build --preset benchmark
-./build/benchmark-clang/query_engine_benchmark
+cmake --build --preset benchmark --target run_benchmarks
 ```
 
 The first benchmark configuration may download Google Benchmark from GitHub.
@@ -57,10 +57,10 @@ language extensions such as GNU C++ extensions are disabled.
 
 ```cmake
 add_library(query_engine
-    aggregation.cpp
-    formatter.cpp
-    query.cpp
-    table.cpp
+    src/aggregation.cpp
+    src/formatter.cpp
+    src/query.cpp
+    src/table.cpp
 )
 ```
 
@@ -69,11 +69,11 @@ library. Tests and applications link against this target instead of compiling
 the same implementation files independently.
 
 ```cmake
-target_include_directories(query_engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(query_engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 ```
 
-This exposes the project root as an include directory. `PUBLIC` means the
-include directory is also inherited by targets that link to `query_engine`.
+This exposes the public `include` directory. `PUBLIC` means the include
+directory is also inherited by targets that link to `query_engine`.
 
 ```cmake
 if(MSVC)
@@ -90,12 +90,12 @@ only apply while compiling the library itself.
 ### Example executable
 
 ```cmake
-add_executable(random_query random.cpp)
+add_executable(random_query examples/random.cpp)
 target_link_libraries(random_query PRIVATE query_engine)
 ```
 
-This creates the `random_query` executable from `random.cpp` and links it to
-the query engine library.
+This creates the `random_query` executable from `examples/random.cpp` and links
+it to the query engine library.
 
 ### Correctness tests
 
@@ -148,19 +148,29 @@ FetchContent_MakeAvailable(google_benchmark)
 This downloads Google Benchmark when necessary, configures it with the active
 compiler, and makes its CMake targets available.
 
-```cmake
-add_executable(query_engine_benchmark benchmark.cpp)
-target_link_libraries(
-    query_engine_benchmark
-    PRIVATE
-        query_engine
-        benchmark::benchmark_main
-)
-```
+The general reporter also fetches the header-only `nlohmann/json` library,
+pinned to `v3.11.3`. C++20 does not include a standard JSON API, so this
+dependency provides structured serialization and parsing for summary and
+baseline files. Its tests and installation rules are disabled because only the
+library target is needed.
 
-This builds `benchmark.cpp` and links it with the engine and Google Benchmark.
-`benchmark::benchmark_main` supplies `main()`, so `benchmark.cpp` only needs to
-register benchmark functions.
+The benchmark configuration builds `query_engine_benchmark` from the query,
+aggregation, and insertion benchmark sources. It also builds the separate
+`query_engine_stress_benchmark` executable for opt-in 10-million-row cases.
+Both targets link to the query engine and `benchmark::benchmark_main`, which
+provides their `main()` function.
+
+`query_engine_general_benchmark` compiles the same normal benchmark sources but
+links `benchmark::benchmark` instead of `benchmark::benchmark_main`. Its
+`general_benchmark_main.cpp` supplies a custom `main()` and reporter so it can
+select representative registrations and produce grouped JSON directly in C++.
+
+The `run_general_benchmarks`, `run_benchmarks`, and `run_stress_benchmarks`
+custom targets execute these programs with consistent repetition settings and
+save JSON output under `build/benchmark-clang/benchmark-results`.
+`save_general_benchmark_baseline` records a concise local reference for later
+general runs. See [Benchmark Guide](benchmarks.md) for the workload matrix and
+comparison workflow.
 
 ## CMakePresets.json
 

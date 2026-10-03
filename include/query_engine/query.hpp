@@ -3,8 +3,8 @@
 #include <vector>
 #include <functional>
 #include <optional>
-#include "table.hpp"
-#include "aggregation.hpp"
+#include "query_engine/table.hpp"
+#include "query_engine/aggregation.hpp"
 #include <variant>
 
 using OrderExpression = std::variant<ColumnName, Aggregation>;

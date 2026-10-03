@@ -1,6 +1,6 @@
-#include "table.hpp"
-#include "query.hpp"
-#include "formatter.hpp"
+#include "query_engine/table.hpp"
+#include "query_engine/query.hpp"
+#include "query_engine/formatter.hpp"
 #include <optional>
 
 int main(){

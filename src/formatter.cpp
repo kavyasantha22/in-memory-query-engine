@@ -1,5 +1,5 @@
-#include "formatter.hpp"
-#include "query.hpp"
+#include "query_engine/formatter.hpp"
+#include "query_engine/query.hpp"
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -100,5 +100,4 @@ void printSqlTable(const std::string& title, const ResultTable& table){
 
     printSqlTable(title, table.column_names, rows);
 }
-
 

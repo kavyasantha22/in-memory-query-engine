@@ -1,4 +1,4 @@
-#include "table.hpp"
+#include "query_engine/table.hpp"
 #include <chrono>
 #include <stdexcept>
 

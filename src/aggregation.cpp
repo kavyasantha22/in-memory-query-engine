@@ -1,6 +1,6 @@
-#include "table.hpp"
+#include "query_engine/table.hpp"
 #include <vector>
-#include "query.hpp"
+#include "query_engine/query.hpp"
 #include <stdexcept>
 #include <variant>
 

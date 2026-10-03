@@ -1,6 +1,6 @@
 #pragma once
 
-#include "table.hpp"
+#include "query_engine/table.hpp"
 #include <vector>
 
 enum class AggregationType {

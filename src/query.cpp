@@ -1,6 +1,6 @@
-#include "table.hpp"
-#include "query.hpp"
-#include "aggregation.hpp"
+#include "query_engine/table.hpp"
+#include "query_engine/query.hpp"
+#include "query_engine/aggregation.hpp"
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -269,6 +269,5 @@ ResultTable queryTable(Table table, Query query){
 void insertRow(Table& table, Row row){
     table.rows.push_back(row);
 }
-
 
 

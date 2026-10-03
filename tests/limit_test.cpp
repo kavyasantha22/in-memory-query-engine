@@ -1,6 +1,6 @@
-#include "aggregation.hpp"
-#include "query.hpp"
-#include "table.hpp"
+#include "query_engine/aggregation.hpp"
+#include "query_engine/query.hpp"
+#include "query_engine/table.hpp"
 
 #include <cassert>
 #include <cstdint>

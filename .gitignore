@@ -1,0 +1,11 @@
+# Build output
+/build/
+/cmake-build-*/
+
+# Makefile output
+/random
+/*_test_runner
+
+# Local editor and operating-system files
+/.vscode/
+.DS_Store
