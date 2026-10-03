@@ -3,6 +3,10 @@
 Status reviewed against the `main` branch on 3 October 2026.
 Implemented behavior and remaining correctness coverage are listed separately.
 
+Library declarations in this document are excerpts from `namespace query_engine`.
+Caller examples use qualified names; the public API does not
+provide global compatibility aliases.
+
 ## 1. Project Overview
 
 This project is a small in-memory analytical query engine written in C++.
@@ -125,7 +129,7 @@ A filter determines whether a row should be included.
 Example:
 
 ```cpp
-[](Row row) {
+[](query_engine::Row row) {
     return row.price > 100.0;
 }
 ```
@@ -146,8 +150,8 @@ Example:
 
 ```cpp
 {
-    ColumnName::PRODUCT_ID,
-    ColumnName::PRICE
+    query_engine::ColumnName::PRODUCT_ID,
+    query_engine::ColumnName::PRICE
 }
 ```
 
@@ -362,7 +366,7 @@ Initial implementation requirements:
 Current representation:
 
 ```cpp
-std::vector<Group>
+std::vector<query_engine::Group>
 ```
 
 Each `Group` contains `key_columns`, a `std::vector<ResultValue>` key, and
@@ -669,10 +673,10 @@ Current behavior copies:
 Possible changes:
 
 ```cpp
-const Table&
-const Query&
-const Row&
-const std::vector<Row>&
+const query_engine::Table&
+const query_engine::Query&
+const query_engine::Row&
+const std::vector<query_engine::Row>&
 ```
 
 Purpose:
@@ -847,7 +851,7 @@ Purpose:
 Current row store:
 
 ```cpp
-std::vector<Row>
+std::vector<query_engine::Row>
 ```
 
 Possible column store:
@@ -878,7 +882,7 @@ Benchmark row store and column store using identical datasets and queries.
 Baseline:
 
 ```cpp
-std::vector<Group>  // each group contains a key and complete input rows
+std::vector<query_engine::Group>  // each group contains a key and complete input rows
 ```
 
 Each input key is compared against existing groups by linear search. With many

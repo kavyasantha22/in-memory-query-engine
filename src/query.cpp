@@ -6,6 +6,8 @@
 #include <vector>
 #include <algorithm>
 
+namespace query_engine {
+
 
 std::string orderExpressionToString(const OrderExpression& expression) {
     if (const auto* column = std::get_if<ColumnName>(&expression)) {
@@ -270,4 +272,5 @@ void insertRow(Table& table, Row row){
     table.rows.push_back(row);
 }
 
+} // namespace query_engine
 

@@ -13,8 +13,8 @@ namespace {
 
 using benchmarkSupport::runQuery;
 
-Query makeDetailQuery(std::vector<ColumnName> projection){
-    return Query{
+query_engine::Query makeDetailQuery(std::vector<query_engine::ColumnName> projection){
+    return query_engine::Query{
         .projection = projection,
         .filter = std::nullopt,
         .aggregation = std::nullopt,
@@ -27,7 +27,7 @@ Query makeDetailQuery(std::vector<ColumnName> projection){
 void bmProjectionOneColumn(benchmark::State& state){
     runQuery(
         state,
-        makeDetailQuery({ColumnName::PRICE}),
+        makeDetailQuery({query_engine::ColumnName::PRICE}),
         static_cast<std::size_t>(state.range(0))
     );
 }
@@ -36,9 +36,9 @@ void bmProjectionThreeColumns(benchmark::State& state){
     runQuery(
         state,
         makeDetailQuery({
-            ColumnName::TRANSACTION_ID,
-            ColumnName::PRODUCT_ID,
-            ColumnName::PRICE
+            query_engine::ColumnName::TRANSACTION_ID,
+            query_engine::ColumnName::PRODUCT_ID,
+            query_engine::ColumnName::PRICE
         }),
         static_cast<std::size_t>(state.range(0))
     );
@@ -48,12 +48,12 @@ void bmProjectionAllColumns(benchmark::State& state){
     runQuery(
         state,
         makeDetailQuery({
-            ColumnName::TRANSACTION_ID,
-            ColumnName::PRODUCT_ID,
-            ColumnName::CATEGORY_ID,
-            ColumnName::PRICE,
-            ColumnName::QUANTITY,
-            ColumnName::TIMESTAMP
+            query_engine::ColumnName::TRANSACTION_ID,
+            query_engine::ColumnName::PRODUCT_ID,
+            query_engine::ColumnName::CATEGORY_ID,
+            query_engine::ColumnName::PRICE,
+            query_engine::ColumnName::QUANTITY,
+            query_engine::ColumnName::TIMESTAMP
         }),
         static_cast<std::size_t>(state.range(0))
     );
@@ -61,22 +61,22 @@ void bmProjectionAllColumns(benchmark::State& state){
 
 void runFilter(
     benchmark::State& state,
-    std::function<bool(Row)> filter,
+    std::function<bool(query_engine::Row)> filter,
     std::size_t expectedRows
 ){
-    Query query = makeDetailQuery({ColumnName::TRANSACTION_ID});
+    query_engine::Query query = makeDetailQuery({query_engine::ColumnName::TRANSACTION_ID});
     query.filter = filter;
     runQuery(state, query, expectedRows);
 }
 
 void bmFilterZeroPercent(benchmark::State& state){
-    runFilter(state, [](Row){ return false; }, 0);
+    runFilter(state, [](query_engine::Row){ return false; }, 0);
 }
 
 void bmFilterOnePercent(benchmark::State& state){
     runFilter(
         state,
-        [](Row row){ return row.transaction_id % 100 == 0; },
+        [](query_engine::Row row){ return row.transaction_id % 100 == 0; },
         static_cast<std::size_t>(state.range(0) / 100)
     );
 }
@@ -84,7 +84,7 @@ void bmFilterOnePercent(benchmark::State& state){
 void bmFilterTenPercent(benchmark::State& state){
     runFilter(
         state,
-        [](Row row){ return row.category_id == 0; },
+        [](query_engine::Row row){ return row.category_id == 0; },
         static_cast<std::size_t>(state.range(0) / 10)
     );
 }
@@ -92,7 +92,7 @@ void bmFilterTenPercent(benchmark::State& state){
 void bmFilterFiftyPercent(benchmark::State& state){
     runFilter(
         state,
-        [](Row row){ return row.transaction_id % 2 == 0; },
+        [](query_engine::Row row){ return row.transaction_id % 2 == 0; },
         static_cast<std::size_t>(state.range(0) / 2)
     );
 }
@@ -100,19 +100,19 @@ void bmFilterFiftyPercent(benchmark::State& state){
 void bmFilterOneHundredPercent(benchmark::State& state){
     runFilter(
         state,
-        [](Row){ return true; },
+        [](query_engine::Row){ return true; },
         static_cast<std::size_t>(state.range(0))
     );
 }
 
 void bmLimitZero(benchmark::State& state){
-    Query query = makeDetailQuery({ColumnName::TRANSACTION_ID});
+    query_engine::Query query = makeDetailQuery({query_engine::ColumnName::TRANSACTION_ID});
     query.limit = 0;
     runQuery(state, query, 0);
 }
 
 void bmLimitTen(benchmark::State& state){
-    Query query = makeDetailQuery({ColumnName::TRANSACTION_ID});
+    query_engine::Query query = makeDetailQuery({query_engine::ColumnName::TRANSACTION_ID});
     query.limit = 10;
     runQuery(
         state,
@@ -122,50 +122,50 @@ void bmLimitTen(benchmark::State& state){
 }
 
 void bmOrderByVisibleColumn(benchmark::State& state){
-    Query query = makeDetailQuery({ColumnName::TRANSACTION_ID, ColumnName::PRICE});
-    query.order_by = std::vector<OrderByItem>{
-        OrderByItem{.expr = ColumnName::PRICE, .ascending = true}
+    query_engine::Query query = makeDetailQuery({query_engine::ColumnName::TRANSACTION_ID, query_engine::ColumnName::PRICE});
+    query.order_by = std::vector<query_engine::OrderByItem>{
+        query_engine::OrderByItem{.expr = query_engine::ColumnName::PRICE, .ascending = true}
     };
     runQuery(state, query, static_cast<std::size_t>(state.range(0)));
 }
 
 void bmOrderByMultipleColumns(benchmark::State& state){
-    Query query = makeDetailQuery({
-        ColumnName::TRANSACTION_ID,
-        ColumnName::CATEGORY_ID,
-        ColumnName::PRICE
+    query_engine::Query query = makeDetailQuery({
+        query_engine::ColumnName::TRANSACTION_ID,
+        query_engine::ColumnName::CATEGORY_ID,
+        query_engine::ColumnName::PRICE
     });
-    query.order_by = std::vector<OrderByItem>{
-        OrderByItem{.expr = ColumnName::CATEGORY_ID, .ascending = true},
-        OrderByItem{.expr = ColumnName::PRICE, .ascending = false}
+    query.order_by = std::vector<query_engine::OrderByItem>{
+        query_engine::OrderByItem{.expr = query_engine::ColumnName::CATEGORY_ID, .ascending = true},
+        query_engine::OrderByItem{.expr = query_engine::ColumnName::PRICE, .ascending = false}
     };
     runQuery(state, query, static_cast<std::size_t>(state.range(0)));
 }
 
 void bmOrderByHiddenColumn(benchmark::State& state){
-    Query query = makeDetailQuery({ColumnName::TRANSACTION_ID});
-    query.order_by = std::vector<OrderByItem>{
-        OrderByItem{.expr = ColumnName::PRICE, .ascending = true}
+    query_engine::Query query = makeDetailQuery({query_engine::ColumnName::TRANSACTION_ID});
+    query.order_by = std::vector<query_engine::OrderByItem>{
+        query_engine::OrderByItem{.expr = query_engine::ColumnName::PRICE, .ascending = true}
     };
     runQuery(state, query, static_cast<std::size_t>(state.range(0)));
 }
 
 void bmOrderByWithLimit(benchmark::State& state){
-    Query query = makeDetailQuery({ColumnName::TRANSACTION_ID});
-    query.order_by = std::vector<OrderByItem>{
-        OrderByItem{.expr = ColumnName::PRICE, .ascending = false}
+    query_engine::Query query = makeDetailQuery({query_engine::ColumnName::TRANSACTION_ID});
+    query.order_by = std::vector<query_engine::OrderByItem>{
+        query_engine::OrderByItem{.expr = query_engine::ColumnName::PRICE, .ascending = false}
     };
     query.limit = 10;
     runQuery(state, query, 10);
 }
 
-Query makeGroupedSumQuery(std::vector<ColumnName> groupBy){
-    return Query{
+query_engine::Query makeGroupedSumQuery(std::vector<query_engine::ColumnName> groupBy){
+    return query_engine::Query{
         .projection = groupBy,
         .filter = std::nullopt,
-        .aggregation = Aggregation{
-            .type = AggregationType::SUM,
-            .column = ColumnName::PRICE
+        .aggregation = query_engine::Aggregation{
+            .type = query_engine::AggregationType::SUM,
+            .column = query_engine::ColumnName::PRICE
         },
         .group_by = groupBy,
         .order_by = std::nullopt,
@@ -174,12 +174,12 @@ Query makeGroupedSumQuery(std::vector<ColumnName> groupBy){
 }
 
 void bmGlobalSumQuery(benchmark::State& state){
-    Query query{
+    query_engine::Query query{
         .projection = {},
         .filter = std::nullopt,
-        .aggregation = Aggregation{
-            .type = AggregationType::SUM,
-            .column = ColumnName::PRICE
+        .aggregation = query_engine::Aggregation{
+            .type = query_engine::AggregationType::SUM,
+            .column = query_engine::ColumnName::PRICE
         },
         .group_by = std::nullopt,
         .order_by = std::nullopt,
@@ -191,7 +191,7 @@ void bmGlobalSumQuery(benchmark::State& state){
 void bmGroupByCategory(benchmark::State& state){
     runQuery(
         state,
-        makeGroupedSumQuery({ColumnName::CATEGORY_ID}),
+        makeGroupedSumQuery({query_engine::ColumnName::CATEGORY_ID}),
         10
     );
 }
@@ -199,7 +199,7 @@ void bmGroupByCategory(benchmark::State& state){
 void bmGroupByProduct(benchmark::State& state){
     runQuery(
         state,
-        makeGroupedSumQuery({ColumnName::PRODUCT_ID}),
+        makeGroupedSumQuery({query_engine::ColumnName::PRODUCT_ID}),
         100
     );
 }
@@ -207,7 +207,7 @@ void bmGroupByProduct(benchmark::State& state){
 void bmGroupByCategoryAndProduct(benchmark::State& state){
     runQuery(
         state,
-        makeGroupedSumQuery({ColumnName::CATEGORY_ID, ColumnName::PRODUCT_ID}),
+        makeGroupedSumQuery({query_engine::ColumnName::CATEGORY_ID, query_engine::ColumnName::PRODUCT_ID}),
         100
     );
 }
@@ -215,23 +215,23 @@ void bmGroupByCategoryAndProduct(benchmark::State& state){
 void bmGroupByTransaction(benchmark::State& state){
     runQuery(
         state,
-        makeGroupedSumQuery({ColumnName::TRANSACTION_ID}),
+        makeGroupedSumQuery({query_engine::ColumnName::TRANSACTION_ID}),
         static_cast<std::size_t>(state.range(0))
     );
 }
 
 void bmComposedGroupedQuery(benchmark::State& state){
-    const Aggregation averagePrice{
-        .type = AggregationType::AVG,
-        .column = ColumnName::PRICE
+    const query_engine::Aggregation averagePrice{
+        .type = query_engine::AggregationType::AVG,
+        .column = query_engine::ColumnName::PRICE
     };
-    Query query{
-        .projection = {ColumnName::CATEGORY_ID},
-        .filter = [](Row row){ return row.transaction_id % 2 == 0; },
+    query_engine::Query query{
+        .projection = {query_engine::ColumnName::CATEGORY_ID},
+        .filter = [](query_engine::Row row){ return row.transaction_id % 2 == 0; },
         .aggregation = averagePrice,
-        .group_by = std::vector<ColumnName>{ColumnName::CATEGORY_ID},
-        .order_by = std::vector<OrderByItem>{
-            OrderByItem{.expr = averagePrice, .ascending = false}
+        .group_by = std::vector<query_engine::ColumnName>{query_engine::ColumnName::CATEGORY_ID},
+        .order_by = std::vector<query_engine::OrderByItem>{
+            query_engine::OrderByItem{.expr = averagePrice, .ascending = false}
         },
         .limit = 5
     };
@@ -239,10 +239,10 @@ void bmComposedGroupedQuery(benchmark::State& state){
 }
 
 void bmComposedHiddenOrderQuery(benchmark::State& state){
-    Query query = makeDetailQuery({ColumnName::TRANSACTION_ID});
-    query.filter = [](Row row){ return row.category_id == 1; };
-    query.order_by = std::vector<OrderByItem>{
-        OrderByItem{.expr = ColumnName::PRICE, .ascending = false}
+    query_engine::Query query = makeDetailQuery({query_engine::ColumnName::TRANSACTION_ID});
+    query.filter = [](query_engine::Row row){ return row.category_id == 1; };
+    query.order_by = std::vector<query_engine::OrderByItem>{
+        query_engine::OrderByItem{.expr = query_engine::ColumnName::PRICE, .ascending = false}
     };
     query.limit = 10;
     runQuery(state, query, 10);

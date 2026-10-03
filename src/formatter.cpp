@@ -6,6 +6,8 @@
 #include <type_traits>
 #include <variant>
 
+namespace query_engine {
+
 std::string formatValue(ResultValue value){
     return std::visit([](auto x) {
         std::ostringstream out;
@@ -101,3 +103,4 @@ void printSqlTable(const std::string& title, const ResultTable& table){
     printSqlTable(title, table.column_names, rows);
 }
 
+} // namespace query_engine

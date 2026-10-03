@@ -11,72 +11,72 @@
 
 namespace {
 
-std::uint64_t uint64Value(const ResultTable& table, std::size_t row, std::size_t column){
+std::uint64_t uint64Value(const query_engine::ResultTable& table, std::size_t row, std::size_t column){
     return std::get<std::uint64_t>(table.rows[row].data[column]);
 }
 
-double doubleValue(const ResultTable& table, std::size_t row, std::size_t column){
+double doubleValue(const query_engine::ResultTable& table, std::size_t row, std::size_t column){
     return std::get<double>(table.rows[row].data[column]);
 }
 
 } // namespace
 
 int main(){
-    const Table table = generateTable(10);
+    const query_engine::Table table = query_engine::generateTable(10);
 
-    Query basic_limit_query{
-        .projection = {ColumnName::TRANSACTION_ID},
+    query_engine::Query basic_limit_query{
+        .projection = {query_engine::ColumnName::TRANSACTION_ID},
         .filter = std::nullopt,
         .aggregation = std::nullopt,
         .group_by = std::nullopt,
         .order_by = std::nullopt,
         .limit = 3
     };
-    ResultTable basic_limit_result = queryTable(table, basic_limit_query);
+    query_engine::ResultTable basic_limit_result = query_engine::queryTable(table, basic_limit_query);
 
     assert(basic_limit_result.rows.size() == 3);
     assert(uint64Value(basic_limit_result, 0, 0) == 0);
     assert(uint64Value(basic_limit_result, 1, 0) == 1);
     assert(uint64Value(basic_limit_result, 2, 0) == 2);
 
-    Query zero_limit_query{
-        .projection = {ColumnName::TRANSACTION_ID},
+    query_engine::Query zero_limit_query{
+        .projection = {query_engine::ColumnName::TRANSACTION_ID},
         .filter = std::nullopt,
         .aggregation = std::nullopt,
         .group_by = std::nullopt,
         .order_by = std::nullopt,
         .limit = 0
     };
-    ResultTable zero_limit_result = queryTable(table, zero_limit_query);
+    query_engine::ResultTable zero_limit_result = query_engine::queryTable(table, zero_limit_query);
 
     assert(zero_limit_result.column_names.size() == 1);
     assert(zero_limit_result.rows.empty());
 
-    Query equal_limit_query{
-        .projection = {ColumnName::TRANSACTION_ID},
+    query_engine::Query equal_limit_query{
+        .projection = {query_engine::ColumnName::TRANSACTION_ID},
         .filter = std::nullopt,
         .aggregation = std::nullopt,
         .group_by = std::nullopt,
         .order_by = std::nullopt,
         .limit = 10
     };
-    ResultTable equal_limit_result = queryTable(table, equal_limit_query);
+    query_engine::ResultTable equal_limit_result = query_engine::queryTable(table, equal_limit_query);
     assert(equal_limit_result.rows.size() == 10);
 
-    Query oversized_limit_query{
-        .projection = {ColumnName::TRANSACTION_ID},
+    query_engine::Query oversized_limit_query{
+        .projection = {query_engine::ColumnName::TRANSACTION_ID},
         .filter = std::nullopt,
         .aggregation = std::nullopt,
         .group_by = std::nullopt,
         .order_by = std::nullopt,
         .limit = 20
     };
-    ResultTable oversized_limit_result = queryTable(table, oversized_limit_query);
+    query_engine::ResultTable oversized_limit_result = query_engine::queryTable(table, oversized_limit_query);
     assert(oversized_limit_result.rows.size() == 10);
 
-    Query filtered_limit_query{
-        .projection = {ColumnName::TRANSACTION_ID},
-        .filter = [](Row row) {
+    query_engine::Query filtered_limit_query{
+        .projection = {query_engine::ColumnName::TRANSACTION_ID},
+        .filter = [](query_engine::Row row) {
             return row.transaction_id >= 5;
         },
         .aggregation = std::nullopt,
@@ -84,60 +84,60 @@ int main(){
         .order_by = std::nullopt,
         .limit = 2
     };
-    ResultTable filtered_limit_result = queryTable(table, filtered_limit_query);
+    query_engine::ResultTable filtered_limit_result = query_engine::queryTable(table, filtered_limit_query);
 
     assert(filtered_limit_result.rows.size() == 2);
     assert(uint64Value(filtered_limit_result, 0, 0) == 5);
     assert(uint64Value(filtered_limit_result, 1, 0) == 6);
 
-    Query ordered_limit_query{
-        .projection = {ColumnName::TRANSACTION_ID},
+    query_engine::Query ordered_limit_query{
+        .projection = {query_engine::ColumnName::TRANSACTION_ID},
         .filter = std::nullopt,
         .aggregation = std::nullopt,
         .group_by = std::nullopt,
-        .order_by = std::vector<OrderByItem>{
-            OrderByItem{
-                .expr = ColumnName::TRANSACTION_ID,
+        .order_by = std::vector<query_engine::OrderByItem>{
+            query_engine::OrderByItem{
+                .expr = query_engine::ColumnName::TRANSACTION_ID,
                 .ascending = false
             }
         },
         .limit = 3
     };
-    ResultTable ordered_limit_result = queryTable(table, ordered_limit_query);
+    query_engine::ResultTable ordered_limit_result = query_engine::queryTable(table, ordered_limit_query);
 
     assert(ordered_limit_result.rows.size() == 3);
     assert(uint64Value(ordered_limit_result, 0, 0) == 9);
     assert(uint64Value(ordered_limit_result, 1, 0) == 8);
     assert(uint64Value(ordered_limit_result, 2, 0) == 7);
 
-    Query grouped_limit_query{
-        .projection = {ColumnName::CATEGORY_ID},
+    query_engine::Query grouped_limit_query{
+        .projection = {query_engine::ColumnName::CATEGORY_ID},
         .filter = std::nullopt,
-        .aggregation = Aggregation{AggregationType::SUM, ColumnName::PRICE},
-        .group_by = std::vector<ColumnName>{ColumnName::CATEGORY_ID},
-        .order_by = std::vector<OrderByItem>{
-            OrderByItem{
-                .expr = Aggregation{AggregationType::SUM, ColumnName::PRICE},
+        .aggregation = query_engine::Aggregation{query_engine::AggregationType::SUM, query_engine::ColumnName::PRICE},
+        .group_by = std::vector<query_engine::ColumnName>{query_engine::ColumnName::CATEGORY_ID},
+        .order_by = std::vector<query_engine::OrderByItem>{
+            query_engine::OrderByItem{
+                .expr = query_engine::Aggregation{query_engine::AggregationType::SUM, query_engine::ColumnName::PRICE},
                 .ascending = false
             }
         },
         .limit = 3
     };
-    ResultTable grouped_limit_result = queryTable(generateTable(20), grouped_limit_query);
+    query_engine::ResultTable grouped_limit_result = query_engine::queryTable(query_engine::generateTable(20), grouped_limit_query);
 
     assert(grouped_limit_result.rows.size() == 3);
     assert(doubleValue(grouped_limit_result, 0, 1) >= doubleValue(grouped_limit_result, 1, 1));
     assert(doubleValue(grouped_limit_result, 1, 1) >= doubleValue(grouped_limit_result, 2, 1));
 
-    Query no_limit_query{
-        .projection = {ColumnName::TRANSACTION_ID},
+    query_engine::Query no_limit_query{
+        .projection = {query_engine::ColumnName::TRANSACTION_ID},
         .filter = std::nullopt,
         .aggregation = std::nullopt,
         .group_by = std::nullopt,
         .order_by = std::nullopt,
         .limit = std::nullopt
     };
-    ResultTable no_limit_result = queryTable(table, no_limit_query);
+    query_engine::ResultTable no_limit_result = query_engine::queryTable(table, no_limit_query);
 
     assert(no_limit_result.rows.size() == 10);
     assert(uint64Value(no_limit_result, 0, 0) == 0);

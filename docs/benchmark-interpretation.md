@@ -59,7 +59,7 @@ Benchmark repeated the timed body during one measurement:
 
 ```cpp
 for (auto _ : state) {
-    ResultTable result = queryTable(table, query);
+    query_engine::ResultTable result = query_engine::queryTable(table, query);
 }
 ```
 

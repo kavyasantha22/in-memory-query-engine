@@ -4,18 +4,18 @@
 #include <optional>
 
 int main(){
-    Table table = generateTable(0);
-    printSqlTable("Initial Table", table);
-    Query query = {
-        .projection = {ColumnName::CATEGORY_ID},
+    query_engine::Table table = query_engine::generateTable(0);
+    query_engine::printSqlTable("Initial Table", table);
+    query_engine::Query query = {
+        .projection = {query_engine::ColumnName::CATEGORY_ID},
         .filter = std::nullopt,
-        .aggregation = Aggregation{
-            .type=AggregationType::AVG,
-            .column=ColumnName::PRICE
+        .aggregation = query_engine::Aggregation{
+            .type=query_engine::AggregationType::AVG,
+            .column=query_engine::ColumnName::PRICE
         },
-        .group_by = std::vector<ColumnName>{ColumnName::CATEGORY_ID},
+        .group_by = std::vector<query_engine::ColumnName>{query_engine::ColumnName::CATEGORY_ID},
     };
-    ResultTable rTable = queryTable(table, query);
-    printSqlTable("Result", rTable);
+    query_engine::ResultTable rTable = query_engine::queryTable(table, query);
+    query_engine::printSqlTable("Result", rTable);
     return 0;
 }

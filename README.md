@@ -10,6 +10,10 @@ results under `build/` are local measurements and are not committed.
 Read the [engine design and workflow](docs/engine-design.md) for execution
 stages, design tradeoffs, advantages, and current limitations.
 
+The public API lives in `namespace query_engine`. Include
+`query_engine/query_engine.hpp` and use qualified names such as
+`query_engine::Table`, `query_engine::Query`, and `query_engine::queryTable()`.
+
 ## Project layout
 
 ```text

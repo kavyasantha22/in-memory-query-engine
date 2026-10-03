@@ -9,23 +9,23 @@
 #include <vector>
 
 int main(){
-    Table table = generateTable(20);
+    query_engine::Table table = query_engine::generateTable(20);
 
-    assert(std::get<double>(aggregate(table.rows, Aggregation{AggregationType::SUM, ColumnName::PRICE})) == 5063);
-    assert(std::get<std::uint64_t>(aggregate(table.rows, Aggregation{AggregationType::COUNT, ColumnName::PRICE})) == 20);
-    assert(std::get<double>(aggregate(table.rows, Aggregation{AggregationType::AVG, ColumnName::PRICE})) == 253.15);
-    assert(std::get<double>(aggregate(table.rows, Aggregation{AggregationType::MIN, ColumnName::PRICE})) == 0);
-    assert(std::get<double>(aggregate(table.rows, Aggregation{AggregationType::MAX, ColumnName::PRICE})) == 479);
+    assert(std::get<double>(query_engine::aggregate(table.rows, query_engine::Aggregation{query_engine::AggregationType::SUM, query_engine::ColumnName::PRICE})) == 5063);
+    assert(std::get<std::uint64_t>(query_engine::aggregate(table.rows, query_engine::Aggregation{query_engine::AggregationType::COUNT, query_engine::ColumnName::PRICE})) == 20);
+    assert(std::get<double>(query_engine::aggregate(table.rows, query_engine::Aggregation{query_engine::AggregationType::AVG, query_engine::ColumnName::PRICE})) == 253.15);
+    assert(std::get<double>(query_engine::aggregate(table.rows, query_engine::Aggregation{query_engine::AggregationType::MIN, query_engine::ColumnName::PRICE})) == 0);
+    assert(std::get<double>(query_engine::aggregate(table.rows, query_engine::Aggregation{query_engine::AggregationType::MAX, query_engine::ColumnName::PRICE})) == 479);
 
-    std::vector<Row> empty_rows;
-    assert(std::get<double>(aggregate(empty_rows, Aggregation{AggregationType::SUM, ColumnName::PRICE})) == 0);
-    assert(std::get<std::uint64_t>(aggregate(empty_rows, Aggregation{AggregationType::COUNT, ColumnName::PRICE})) == 0);
-    assert(std::get<double>(aggregate(empty_rows, Aggregation{AggregationType::MIN, ColumnName::PRICE})) == 0);
-    assert(std::get<double>(aggregate(empty_rows, Aggregation{AggregationType::MAX, ColumnName::PRICE})) == 0);
+    std::vector<query_engine::Row> empty_rows;
+    assert(std::get<double>(query_engine::aggregate(empty_rows, query_engine::Aggregation{query_engine::AggregationType::SUM, query_engine::ColumnName::PRICE})) == 0);
+    assert(std::get<std::uint64_t>(query_engine::aggregate(empty_rows, query_engine::Aggregation{query_engine::AggregationType::COUNT, query_engine::ColumnName::PRICE})) == 0);
+    assert(std::get<double>(query_engine::aggregate(empty_rows, query_engine::Aggregation{query_engine::AggregationType::MIN, query_engine::ColumnName::PRICE})) == 0);
+    assert(std::get<double>(query_engine::aggregate(empty_rows, query_engine::Aggregation{query_engine::AggregationType::MAX, query_engine::ColumnName::PRICE})) == 0);
 
     bool threw = false;
     try {
-        aggregate(table.rows, Aggregation{AggregationType::NONE, ColumnName::PRICE});
+        query_engine::aggregate(table.rows, query_engine::Aggregation{query_engine::AggregationType::NONE, query_engine::ColumnName::PRICE});
     } catch (const std::invalid_argument&) {
         threw = true;
     }

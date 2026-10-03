@@ -5,6 +5,8 @@
 #include <vector>
 #include <variant>
 
+namespace query_engine {
+
 using ResultValue = std::variant<std::uint64_t, std::uint32_t, double, std::int64_t>;
 
 enum class ColumnName {
@@ -52,3 +54,5 @@ Table generateTable(std::uint64_t numRows);
 std::string columnNameToString(ColumnName col);
 
 ResultValue getColumnValue(Row row, ColumnName column);
+
+} // namespace query_engine

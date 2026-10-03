@@ -64,6 +64,12 @@ which gives each translation unit its own private definition.
 
 ## Namespaces
 
+The production library uses `namespace query_engine`. Benchmark clients refer
+to its types and functions explicitly, for example `query_engine::Query` and
+`query_engine::queryTable()`. Library type-definition excerpts in this guide
+are understood to be inside that namespace. Header include paths and CMake
+target names are independent of C++ namespaces and retain their existing names.
+
 Shared helpers live in a namespace:
 
 ```cpp
@@ -156,10 +162,10 @@ benchmark_add_argument(registration, 10000);
 The engine and benchmark code use template-based standard-library types:
 
 ```cpp
-std::vector<ColumnName>
-std::vector<Row>
-std::optional<Aggregation>
-std::function<bool(Row)>
+std::vector<query_engine::ColumnName>
+std::vector<query_engine::Row>
+std::optional<query_engine::Aggregation>
+std::function<bool(query_engine::Row)>
 ```
 
 A template describes a family of types or functions. `std::vector<Row>` and
@@ -195,7 +201,7 @@ The insertion helper deliberately uses a nested scope:
 ```cpp
 state.PauseTiming();
 {
-    Table table = generateTable(0);
+    query_engine::Table table = query_engine::generateTable(0);
     state.ResumeTiming();
 
     // Timed insertions
@@ -226,7 +232,7 @@ The timed loop is written as:
 
 ```cpp
 for (auto _ : state){
-    ResultTable result = queryTable(table, query);
+    query_engine::ResultTable result = query_engine::queryTable(table, query);
     benchmark::DoNotOptimize(result);
 }
 ```
@@ -254,7 +260,7 @@ Modern C uses `auto` as a storage-class keyword, not C++-style type deduction.
 Filter selectivity is expressed with lambdas:
 
 ```cpp
-[](Row row){ return row.transaction_id % 100 == 0; }
+[](query_engine::Row row){ return row.transaction_id % 100 == 0; }
 ```
 
 A lambda creates an unnamed function object. The empty capture list `[]` means
@@ -264,7 +270,7 @@ from its surrounding scope.
 The query stores filters in:
 
 ```cpp
-std::function<bool(Row)>
+std::function<bool(query_engine::Row)>
 ```
 
 `std::function` uses **type erasure**: it can hold different callable types
@@ -287,8 +293,8 @@ filtering behavior and is intentionally measured.
 Columns and aggregation types use scoped enumerations:
 
 ```cpp
-ColumnName::PRICE
-AggregationType::SUM
+query_engine::ColumnName::PRICE
+query_engine::AggregationType::SUM
 ```
 
 An `enum class` keeps enumerator names inside the enum's scope and does not
@@ -309,7 +315,7 @@ enum column_name {
 A query clause that may be absent uses `std::optional<T>`:
 
 ```cpp
-std::optional<Aggregation> aggregation;
+std::optional<query_engine::Aggregation> aggregation;
 std::optional<std::size_t> limit;
 ```
 
@@ -364,8 +370,8 @@ union member.
 Queries use named fields:
 
 ```cpp
-Query query{
-    .projection = {ColumnName::PRICE},
+query_engine::Query query{
+    .projection = {query_engine::ColumnName::PRICE},
     .filter = std::nullopt,
     .aggregation = std::nullopt,
     .group_by = std::nullopt,
@@ -425,7 +431,7 @@ The shared query runner receives `Query` by value:
 ```cpp
 inline void runQuery(
     benchmark::State& state,
-    Query query,
+    query_engine::Query query,
     std::size_t expectedRows
 )
 ```
@@ -478,10 +484,10 @@ the query operation.
 Query tables are generated before the timed loop:
 
 ```cpp
-const Table table = generateTable(rowCount);
+const query_engine::Table table = query_engine::generateTable(rowCount);
 
 for (auto _ : state){
-    ResultTable result = queryTable(table, query);
+    query_engine::ResultTable result = query_engine::queryTable(table, query);
 }
 ```
 

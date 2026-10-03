@@ -43,6 +43,24 @@ tests, and benchmarks link to it. Public headers are included with the
 `query_engine/` prefix. Some execution helpers remain internal implementation
 details in `query.cpp`, although they are not all given internal linkage.
 
+All library types and functions belong to `namespace query_engine`, keeping
+names such as `Row`, `Query`, and `aggregate` out of the global namespace.
+Callers explicitly qualify them:
+
+```cpp
+#include "query_engine/query_engine.hpp"
+
+query_engine::Table table = query_engine::generateTable(20);
+query_engine::Query query{};
+query.projection = {query_engine::ColumnName::PRICE};
+query_engine::ResultTable result = query_engine::queryTable(table, query);
+```
+
+The umbrella header only includes the other public headers. Includes stay
+outside namespace blocks, and public headers do not introduce global aliases
+or `using namespace` directives. Declaration excerpts below are inside
+`namespace query_engine`; caller examples use qualified names.
+
 ## Data and query representations
 
 ### Fixed source rows

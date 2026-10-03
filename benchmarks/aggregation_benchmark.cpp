@@ -7,35 +7,35 @@ namespace {
 void bmAggregateCount(benchmark::State& state){
     benchmarkSupport::runAggregation(
         state,
-        Aggregation{.type = AggregationType::COUNT, .column = ColumnName::PRICE}
+        query_engine::Aggregation{.type = query_engine::AggregationType::COUNT, .column = query_engine::ColumnName::PRICE}
     );
 }
 
 void bmAggregateSum(benchmark::State& state){
     benchmarkSupport::runAggregation(
         state,
-        Aggregation{.type = AggregationType::SUM, .column = ColumnName::PRICE}
+        query_engine::Aggregation{.type = query_engine::AggregationType::SUM, .column = query_engine::ColumnName::PRICE}
     );
 }
 
 void bmAggregateAverage(benchmark::State& state){
     benchmarkSupport::runAggregation(
         state,
-        Aggregation{.type = AggregationType::AVG, .column = ColumnName::PRICE}
+        query_engine::Aggregation{.type = query_engine::AggregationType::AVG, .column = query_engine::ColumnName::PRICE}
     );
 }
 
 void bmAggregateMinimum(benchmark::State& state){
     benchmarkSupport::runAggregation(
         state,
-        Aggregation{.type = AggregationType::MIN, .column = ColumnName::PRICE}
+        query_engine::Aggregation{.type = query_engine::AggregationType::MIN, .column = query_engine::ColumnName::PRICE}
     );
 }
 
 void bmAggregateMaximum(benchmark::State& state){
     benchmarkSupport::runAggregation(
         state,
-        Aggregation{.type = AggregationType::MAX, .column = ColumnName::PRICE}
+        query_engine::Aggregation{.type = query_engine::AggregationType::MAX, .column = query_engine::ColumnName::PRICE}
     );
 }
 

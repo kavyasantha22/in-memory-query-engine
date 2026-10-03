@@ -2,6 +2,8 @@
 #include <chrono>
 #include <stdexcept>
 
+namespace query_engine {
+
 
 Table generateTable(std::uint64_t numRows){
     Table new_table;
@@ -70,3 +72,5 @@ ResultValue getColumnValue(Row row, ColumnName column){
 
     throw std::invalid_argument("Unknown column");
 }
+
+} // namespace query_engine

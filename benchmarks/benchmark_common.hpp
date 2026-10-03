@@ -27,8 +27,8 @@ inline void addInsertRowCounts(benchmark::Benchmark* benchmark){
     benchmark->Arg(1'000)->Arg(10'000)->Arg(100'000)->Arg(1'000'000);
 }
 
-inline Row makeRow(){
-    return Row{
+inline query_engine::Row makeRow(){
+    return query_engine::Row{
         .transaction_id = 23'123'123,
         .product_id = 19,
         .category_id = 1,
@@ -45,15 +45,15 @@ inline void recordRows(benchmark::State& state, std::int64_t rowCount){
 
 inline void runQuery(
     benchmark::State& state,
-    Query query,
+    query_engine::Query query,
     std::size_t expectedRows
 ){
     const std::int64_t rowCount = state.range(0);
-    const Table table = generateTable(static_cast<std::uint64_t>(rowCount));
+    const query_engine::Table table = query_engine::generateTable(static_cast<std::uint64_t>(rowCount));
     std::size_t resultRows = 0;
 
     for (auto _ : state){
-        ResultTable result = queryTable(table, query);
+        query_engine::ResultTable result = query_engine::queryTable(table, query);
         resultRows = result.rows.size();
         benchmark::DoNotOptimize(result);
     }
@@ -64,12 +64,12 @@ inline void runQuery(
     recordRows(state, rowCount);
 }
 
-inline void runAggregation(benchmark::State& state, Aggregation aggregation){
+inline void runAggregation(benchmark::State& state, query_engine::Aggregation aggregation){
     const std::int64_t rowCount = state.range(0);
-    const Table table = generateTable(static_cast<std::uint64_t>(rowCount));
+    const query_engine::Table table = query_engine::generateTable(static_cast<std::uint64_t>(rowCount));
 
     for (auto _ : state){
-        ResultValue result = aggregate(table.rows, aggregation);
+        query_engine::ResultValue result = query_engine::aggregate(table.rows, aggregation);
         benchmark::DoNotOptimize(result);
     }
 
@@ -78,20 +78,20 @@ inline void runAggregation(benchmark::State& state, Aggregation aggregation){
 
 inline void runBatchInsert(benchmark::State& state, bool reserveCapacity){
     const std::int64_t rowCount = state.range(0);
-    const Row row = makeRow();
+    const query_engine::Row row = makeRow();
 
     for (auto _ : state){
         state.PauseTiming();
         bool sizeIsValid = false;
         {
-            Table table = generateTable(0);
+            query_engine::Table table = query_engine::generateTable(0);
             if (reserveCapacity){
                 table.rows.reserve(static_cast<std::size_t>(rowCount));
             }
 
             state.ResumeTiming();
             for (std::int64_t i = 0; i < rowCount; ++i){
-                insertRow(table, row);
+                query_engine::insertRow(table, row);
             }
             benchmark::DoNotOptimize(table.rows.data());
             benchmark::ClobberMemory();

@@ -10,8 +10,8 @@ namespace {
 constexpr std::int64_t stressRowCount = 10'000'000;
 
 void bmStressProjection(benchmark::State& state){
-    Query query{
-        .projection = {ColumnName::PRICE},
+    query_engine::Query query{
+        .projection = {query_engine::ColumnName::PRICE},
         .filter = std::nullopt,
         .aggregation = std::nullopt,
         .group_by = std::nullopt,
@@ -26,9 +26,9 @@ void bmStressProjection(benchmark::State& state){
 }
 
 void bmStressFilterTenPercent(benchmark::State& state){
-    Query query{
-        .projection = {ColumnName::TRANSACTION_ID},
-        .filter = [](Row row){ return row.category_id == 0; },
+    query_engine::Query query{
+        .projection = {query_engine::ColumnName::TRANSACTION_ID},
+        .filter = [](query_engine::Row row){ return row.category_id == 0; },
         .aggregation = std::nullopt,
         .group_by = std::nullopt,
         .order_by = std::nullopt,
@@ -44,7 +44,7 @@ void bmStressFilterTenPercent(benchmark::State& state){
 void bmStressAggregateSum(benchmark::State& state){
     benchmarkSupport::runAggregation(
         state,
-        Aggregation{.type = AggregationType::SUM, .column = ColumnName::PRICE}
+        query_engine::Aggregation{.type = query_engine::AggregationType::SUM, .column = query_engine::ColumnName::PRICE}
     );
 }
 

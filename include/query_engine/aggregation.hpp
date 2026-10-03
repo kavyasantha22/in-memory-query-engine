@@ -3,6 +3,8 @@
 #include "query_engine/table.hpp"
 #include <vector>
 
+namespace query_engine {
+
 enum class AggregationType {
     NONE,
     COUNT,
@@ -24,3 +26,5 @@ std::vector<ResultValue> aggregateGroups(std::vector<Group> groups, Aggregation 
 std::string aggregationTypeToString(AggregationType type);
 
 std::string aggregationToString(Aggregation aggregation);
+
+} // namespace query_engine

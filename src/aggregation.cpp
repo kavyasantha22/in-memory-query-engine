@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <variant>
 
+namespace query_engine {
+
 
 double calculateSum(std::vector<Row> rows, ColumnName column){
     double sum = 0;
@@ -136,3 +138,5 @@ std::string aggregationToString(Aggregation aggregation){
         "(" + columnNameToString(aggregation.column) + ")"
     );
 }
+
+} // namespace query_engine

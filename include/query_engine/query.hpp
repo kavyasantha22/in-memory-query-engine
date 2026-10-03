@@ -7,6 +7,8 @@
 #include "query_engine/aggregation.hpp"
 #include <variant>
 
+namespace query_engine {
+
 using OrderExpression = std::variant<ColumnName, Aggregation>;
 
 struct OrderByItem{
@@ -28,3 +30,5 @@ struct Query {
 ResultTable queryTable(Table table, Query query);
 
 void insertRow(Table& table, Row row);
+
+} // namespace query_engine

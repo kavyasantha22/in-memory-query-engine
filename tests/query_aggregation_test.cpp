@@ -8,32 +8,32 @@
 #include <variant>
 
 int main(){
-    Table table = generateTable(20);
+    query_engine::Table table = query_engine::generateTable(20);
 
-    Query sum_query{
+    query_engine::Query sum_query{
         {},
         std::nullopt,
-        Aggregation{AggregationType::SUM, ColumnName::PRICE},
+        query_engine::Aggregation{query_engine::AggregationType::SUM, query_engine::ColumnName::PRICE},
         std::nullopt,
         std::nullopt,
         std::nullopt
     };
-    ResultTable sum_result = queryTable(table, sum_query);
+    query_engine::ResultTable sum_result = query_engine::queryTable(table, sum_query);
     assert(sum_result.rows.size() == 1);
     assert(sum_result.rows[0].data.size() == 1);
     assert(std::get<double>(sum_result.rows[0].data[0]) == 5063);
 
-    Query filtered_count_query{
+    query_engine::Query filtered_count_query{
         {},
-        [](Row row) {
+        [](query_engine::Row row) {
             return row.category_id == 3;
         },
-        Aggregation{AggregationType::COUNT, ColumnName::PRODUCT_ID},
+        query_engine::Aggregation{query_engine::AggregationType::COUNT, query_engine::ColumnName::PRODUCT_ID},
         std::nullopt,
         std::nullopt,
         std::nullopt
     };
-    ResultTable filtered_count_result = queryTable(table, filtered_count_query);
+    query_engine::ResultTable filtered_count_result = query_engine::queryTable(table, filtered_count_query);
     assert(filtered_count_result.rows.size() == 1);
     assert(filtered_count_result.rows[0].data.size() == 1);
     assert(std::get<std::uint64_t>(filtered_count_result.rows[0].data[0]) == 2);
