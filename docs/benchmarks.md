@@ -15,9 +15,9 @@ guided tour of the C++ features it uses, see
 For guidance on reading timings, throughput, Big-O coefficients, RMS errors,
 and baseline changes, see [Interpreting Benchmark Results](benchmark-interpretation.md).
 
-## Benchmark branch
+## Baseline branch
 
-The `benchmark` branch preserves the reference implementation and benchmark
+The `baseline` branch preserves the reference implementation and benchmark
 workloads for future optimization comparisons. Commit `d95b94c` introduced
 the current suites, C++ general reporter, and organized project layout.
 
@@ -42,7 +42,7 @@ Use separate worktrees so both revisions have their own build directories.
 From this repository, create a candidate branch based on the reference:
 
 ```sh
-git worktree add -b optimize-query ../QueryEngine-candidate benchmark
+git worktree add -b optimize-query ../QueryEngine-candidate baseline
 ```
 
 Implement the optimization in the candidate worktree. When ready to measure,

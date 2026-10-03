@@ -1,6 +1,6 @@
 # In-Memory Query Engine — Features and Roadmap
 
-Status reviewed against the `benchmark` branch on 3 October 2026.
+Status reviewed against the `baseline` branch on 3 October 2026.
 Implemented behavior and remaining correctness coverage are listed separately.
 
 ## 1. Project Overview
@@ -1092,7 +1092,7 @@ grouping capabilities are already implemented:
 # 12. Recommended Immediate Next Step
 
 Grouping, ordering, limits, and the benchmark harness are already implemented.
-The `benchmark` branch is the reference revision for future optimization work.
+The `baseline` branch is the reference revision for future optimization work.
 Its local general baseline was refreshed on 3 October 2026; timing files stay
 under the ignored `build/` directory.
 
@@ -1107,7 +1107,7 @@ Recommended order:
 4. Keep the reference revision and benchmark workloads fixed for comparisons.
 5. On an optimization branch, start with removing unnecessary parameter copies.
 6. Run correctness tests and compare fresh reference and candidate measurements
-   on the same machine using the [branch comparison workflow](benchmarks.md#benchmark-branch).
+   on the same machine using the [branch comparison workflow](benchmarks.md#baseline-branch).
 
 Further engine optimizations should remain separate experiments. Preserve the
 chosen result semantics and report repeatable measurements for each change.

@@ -3,7 +3,7 @@
 A small C++20 query engine with filtering, projection, aggregation, grouping,
 ordering, limits, correctness tests, and performance benchmarks.
 
-The `benchmark` branch is the reference implementation for performance
+The `baseline` branch is the reference implementation for performance
 comparisons. Create optimization branches from it and compare them with a
 fresh local baseline. The branch preserves the code used for comparison;
 timing files under `build/` are machine-specific and are not committed.
@@ -41,5 +41,5 @@ See the [benchmark guide](docs/benchmarks.md),
 [result interpretation guide](docs/benchmark-interpretation.md), and
 [CMake guide](docs/cmake.md) for details.
 
-The [branch comparison workflow](docs/benchmarks.md#benchmark-branch)
+The [branch comparison workflow](docs/benchmarks.md#baseline-branch)
 explains how to capture the reference results and compare an optimization.
