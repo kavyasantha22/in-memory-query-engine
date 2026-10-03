@@ -28,7 +28,7 @@ void bmStressProjection(benchmark::State& state){
 void bmStressFilterTenPercent(benchmark::State& state){
     query_engine::Query query{
         .projection = {query_engine::ColumnName::TRANSACTION_ID},
-        .filter = [](query_engine::Row row){ return row.category_id == 0; },
+        .filter = [](const query_engine::Row& row){ return row.category_id == 0; },
         .aggregation = std::nullopt,
         .group_by = std::nullopt,
         .order_by = std::nullopt,

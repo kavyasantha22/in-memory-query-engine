@@ -7,9 +7,9 @@
 namespace query_engine {
 
 
-double calculateSum(std::vector<Row> rows, ColumnName column){
+double calculateSum(const std::vector<std::reference_wrapper<const Row>>& rows, const ColumnName& column){
     double sum = 0;
-    for (auto row: rows){
+    for (const Row& row: rows){
         sum += std::visit(
             [](auto x){
                 return static_cast<double>(x);
@@ -21,10 +21,10 @@ double calculateSum(std::vector<Row> rows, ColumnName column){
 }
 
 
-uint64_t calculateCount(std::vector<Row> rows, ColumnName column){
+uint64_t calculateCount(const std::vector<std::reference_wrapper<const Row>>& rows, const ColumnName& column){
     (void)column;
     int64_t c = 0;
-    for (auto row: rows){
+    for (const Row& row: rows){
         (void)row;
         c++;
     }
@@ -32,14 +32,14 @@ uint64_t calculateCount(std::vector<Row> rows, ColumnName column){
 }
 
 
-double calculateAvg(std::vector<Row> rows, ColumnName column){
+double calculateAvg(const std::vector<std::reference_wrapper<const Row>>& rows, const ColumnName& column){
     double sum = calculateSum(rows, column);
     int64_t count = calculateCount(rows, column);
     return sum / count;
 }
 
 
-double calculateMax(std::vector<Row> rows, ColumnName column){
+double calculateMax(const std::vector<std::reference_wrapper<const Row>>& rows, const ColumnName& column){
     if (rows.size() == 0) return 0;
     double mx = std::visit(
         [](auto x){
@@ -48,7 +48,7 @@ double calculateMax(std::vector<Row> rows, ColumnName column){
         getColumnValue(rows[0], column)
     );
 
-    for (auto row: rows){
+    for (const Row& row: rows){
         double curValue = std::visit(
             [](auto x){
                 return static_cast<double>(x);
@@ -63,7 +63,7 @@ double calculateMax(std::vector<Row> rows, ColumnName column){
 }
 
 
-double calculateMin(std::vector<Row> rows, ColumnName column){
+double calculateMin(const std::vector<std::reference_wrapper<const Row>>& rows, const ColumnName& column){
     if (rows.size() == 0) return 0;
     double mn = std::visit(
         [](auto x){
@@ -71,7 +71,7 @@ double calculateMin(std::vector<Row> rows, ColumnName column){
         },
         getColumnValue(rows[0], column)
     );
-    for (auto row: rows){
+    for (const Row& row: rows){
         double curValue = std::visit(
             [](auto x){
                 return static_cast<double>(x);
@@ -86,7 +86,10 @@ double calculateMin(std::vector<Row> rows, ColumnName column){
 }
 
 
-ResultValue aggregate(std::vector<Row> rows, Aggregation aggr){
+ResultValue aggregate(
+    const std::vector<std::reference_wrapper<const Row>>& rows, 
+    const Aggregation& aggr
+){
     switch (aggr.type){
         case AggregationType::AVG:
             return calculateAvg(rows, aggr.column);
@@ -103,9 +106,9 @@ ResultValue aggregate(std::vector<Row> rows, Aggregation aggr){
     }
 }
 
-std::vector<ResultValue> aggregateGroups(std::vector<Group> groups, Aggregation aggr){
+std::vector<ResultValue> aggregateGroups(const std::vector<Group>& groups, const Aggregation& aggr){
     std::vector<ResultValue> aggregated_values;
-    for (Group g: groups){
+    for (const Group& g: groups){
         ResultValue val = aggregate(g.rows, aggr);
         aggregated_values.push_back(val);
     }
@@ -113,7 +116,7 @@ std::vector<ResultValue> aggregateGroups(std::vector<Group> groups, Aggregation 
 }
 
 
-std::string aggregationTypeToString(AggregationType type){
+std::string aggregationTypeToString(const AggregationType& type){
     switch (type) {
         case AggregationType::NONE:
             return "none";
@@ -132,7 +135,7 @@ std::string aggregationTypeToString(AggregationType type){
     throw std::invalid_argument("Unknown aggregation type");
 }
 
-std::string aggregationToString(Aggregation aggregation){
+std::string aggregationToString(const Aggregation& aggregation){
     return (
         aggregationTypeToString(aggregation.type) + 
         "(" + columnNameToString(aggregation.column) + ")"

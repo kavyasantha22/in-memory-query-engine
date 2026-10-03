@@ -4,7 +4,7 @@
 #include <optional>
 
 int main(){
-    query_engine::Table table = query_engine::generateTable(0);
+    query_engine::Table table = query_engine::generateTable(10);
     query_engine::printSqlTable("Initial Table", table);
     query_engine::Query query = {
         .projection = {query_engine::ColumnName::CATEGORY_ID},

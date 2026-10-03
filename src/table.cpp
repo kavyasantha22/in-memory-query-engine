@@ -30,7 +30,7 @@ Table generateTable(std::uint64_t numRows){
     return new_table;
 }
 
-std::string columnNameToString(ColumnName col){
+std::string columnNameToString(const ColumnName& col){
     switch (col) {
         case ColumnName::TRANSACTION_ID:
             return "transaction_id";
@@ -49,7 +49,7 @@ std::string columnNameToString(ColumnName col){
     throw std::invalid_argument("Unknown column");
 }
 
-ResultValue getColumnValue(Row row, ColumnName column){
+ResultValue getColumnValue(const Row& row, const ColumnName& column){
     switch (column) {
         case ColumnName::TRANSACTION_ID:
             return row.transaction_id;
