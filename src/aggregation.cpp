@@ -7,7 +7,7 @@
 namespace query_engine {
 
 
-double calculateSum(const std::vector<Row>& rows, const ColumnName& column){
+double calculateSum(const std::vector<std::reference_wrapper<const Row>>& rows, const ColumnName& column){
     double sum = 0;
     for (const Row& row: rows){
         sum += std::visit(
@@ -21,7 +21,7 @@ double calculateSum(const std::vector<Row>& rows, const ColumnName& column){
 }
 
 
-uint64_t calculateCount(const std::vector<Row>& rows, const ColumnName& column){
+uint64_t calculateCount(const std::vector<std::reference_wrapper<const Row>>& rows, const ColumnName& column){
     (void)column;
     int64_t c = 0;
     for (const Row& row: rows){
@@ -32,14 +32,14 @@ uint64_t calculateCount(const std::vector<Row>& rows, const ColumnName& column){
 }
 
 
-double calculateAvg(const std::vector<Row>& rows, const ColumnName& column){
+double calculateAvg(const std::vector<std::reference_wrapper<const Row>>& rows, const ColumnName& column){
     double sum = calculateSum(rows, column);
     int64_t count = calculateCount(rows, column);
     return sum / count;
 }
 
 
-double calculateMax(const std::vector<Row>& rows, const ColumnName& column){
+double calculateMax(const std::vector<std::reference_wrapper<const Row>>& rows, const ColumnName& column){
     if (rows.size() == 0) return 0;
     double mx = std::visit(
         [](auto x){
@@ -63,7 +63,7 @@ double calculateMax(const std::vector<Row>& rows, const ColumnName& column){
 }
 
 
-double calculateMin(const std::vector<Row>& rows, const ColumnName& column){
+double calculateMin(const std::vector<std::reference_wrapper<const Row>>& rows, const ColumnName& column){
     if (rows.size() == 0) return 0;
     double mn = std::visit(
         [](auto x){
@@ -86,7 +86,10 @@ double calculateMin(const std::vector<Row>& rows, const ColumnName& column){
 }
 
 
-ResultValue aggregate(const std::vector<Row>& rows, const Aggregation& aggr){
+ResultValue aggregate(
+    const std::vector<std::reference_wrapper<const Row>>& rows, 
+    const Aggregation& aggr
+){
     switch (aggr.type){
         case AggregationType::AVG:
             return calculateAvg(rows, aggr.column);

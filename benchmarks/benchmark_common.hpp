@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <vector>
 
@@ -67,9 +68,14 @@ inline void runQuery(
 inline void runAggregation(benchmark::State& state, query_engine::Aggregation aggregation){
     const std::int64_t rowCount = state.range(0);
     const query_engine::Table table = query_engine::generateTable(static_cast<std::uint64_t>(rowCount));
+    std::vector<std::reference_wrapper<const query_engine::Row>> rows;
+    rows.reserve(table.rows.size());
+    for (const query_engine::Row& row: table.rows){
+        rows.push_back(std::cref(row));
+    }
 
     for (auto _ : state){
-        query_engine::ResultValue result = query_engine::aggregate(table.rows, aggregation);
+        query_engine::ResultValue result = query_engine::aggregate(rows, aggregation);
         benchmark::DoNotOptimize(result);
     }
 

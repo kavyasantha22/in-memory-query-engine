@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 #include <variant>
@@ -46,7 +47,7 @@ struct ResultTable {
 struct Group {
     std::vector<ColumnName> key_columns;
     std::vector<ResultValue> key;
-    std::vector<Row> rows;
+    std::vector<std::reference_wrapper<const Row>> rows;
 };
 
 Table generateTable(std::uint64_t numRows);

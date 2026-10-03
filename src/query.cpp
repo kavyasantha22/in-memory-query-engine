@@ -69,15 +69,13 @@ void applyLimit(ResultTable& result_table, size_t limit){
 }
 
 
-std::vector<Row> filterRows(
+std::vector<std::reference_wrapper<const Row>> filterRows(
     const std::vector<Row>& rows,
     const std::optional<std::function<bool(const Row&)>>& filter
 ){
-    if (!filter) return rows;
-
-    std::vector<Row> filtered_rows;
+    std::vector<std::reference_wrapper<const Row>> filtered_rows;
     for (const Row& row: rows){
-        if ((*filter)(row)){
+        if (!filter || (*filter)(row)){
             filtered_rows.push_back(row);
         }
     }
@@ -87,12 +85,14 @@ std::vector<Row> filterRows(
 
 
 std::vector<Group> buildGroups(
-    const std::vector<Row>& filtered_rows, 
+    const std::vector<std::reference_wrapper<const Row>>& filtered_rows, 
     const std::optional<std::vector<ColumnName>>& group_by
 ){
     std::vector<Group> groups;
     if (group_by){
-        for (const Row& row: filtered_rows){
+        for (const auto& row_ref: filtered_rows){
+            const Row& row = row_ref.get();
+
             std::vector<ResultValue> new_key;
             std::vector<ColumnName> key_columns;
             Row new_row = row;
@@ -100,6 +100,7 @@ std::vector<Group> buildGroups(
                 key_columns.push_back(col);
                 new_key.push_back(getColumnValue(row, col));
             }
+
             bool keyExist = false;
             for (Group& g: groups){
                 if (g.key == new_key){
@@ -107,6 +108,7 @@ std::vector<Group> buildGroups(
                     g.rows.push_back(new_row);
                 }
             }
+
             if (!keyExist){
                 Group newGroup = {
                     .key_columns = key_columns,
@@ -186,7 +188,7 @@ void applyProjection(
 
 
 ResultTable buildResultTable(
-    const std::vector<Row>& rows,
+    const std::vector<std::reference_wrapper<const Row>>& rows,
     const std::vector<ColumnName>& columns
 ){
     ResultTable result_table;
@@ -194,7 +196,9 @@ ResultTable buildResultTable(
         result_table.column_names.push_back(columnNameToString(col));
     }
 
-    for (const Row& row: rows){
+    for (const auto& row_ref: rows){
+        const Row& row = row_ref.get();
+
         ResultRow new_row;
         for (const ColumnName& col: columns){
             new_row.data.push_back(getColumnValue(row, col));
@@ -240,7 +244,7 @@ ResultTable buildResultTable(const std::vector<Group>& groups, const Query& quer
 
 ResultTable queryTable(const Table& table, const Query& query){
     // This is for filter
-    std::vector<Row> filtered_rows = filterRows(table.rows, query.filter);
+    std::vector<std::reference_wrapper<const Row>> filtered_rows = filterRows(table.rows, query.filter);
 
     if (filtered_rows.size() == 0){
         ResultTable result_table = buildResultTable(filtered_rows, table.column_names);

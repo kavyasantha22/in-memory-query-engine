@@ -19,7 +19,10 @@ struct Aggregation {
     ColumnName column;
 };
 
-ResultValue aggregate(const std::vector<Row>& rows, const Aggregation& aggr);
+ResultValue aggregate(
+    const std::vector<std::reference_wrapper<const Row>>& rows,
+    const Aggregation& aggr
+);
 
 std::vector<ResultValue> aggregateGroups(const std::vector<Group>& groups, const Aggregation& aggr);
 
