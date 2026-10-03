@@ -51,8 +51,8 @@ struct Group {
 
 Table generateTable(std::uint64_t numRows);
 
-std::string columnNameToString(ColumnName col);
+std::string columnNameToString(const ColumnName& col);
 
-ResultValue getColumnValue(Row row, ColumnName column);
+ResultValue getColumnValue(const Row& row, const ColumnName& column);
 
 } // namespace query_engine

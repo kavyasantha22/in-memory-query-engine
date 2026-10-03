@@ -5,6 +5,7 @@
 #include <sstream>
 #include <type_traits>
 #include <variant>
+#include <utility>
 
 namespace query_engine {
 
@@ -35,7 +36,7 @@ void printSqlTable(
 ){
     std::vector<std::string> normalizedHeaders = headers;
     std::vector<std::size_t> widths;
-    for (std::string header: normalizedHeaders){
+    for (const std::string& header: normalizedHeaders){
         widths.push_back(header.size());
     }
 
@@ -79,12 +80,12 @@ void printSqlTable(const std::string& title, const Table& table){
     }
 
     std::vector<std::vector<std::string>> rows;
-    for (Row row: table.rows){
+    for (const Row& row: table.rows){
         std::vector<std::string> formattedRow;
         for (ColumnName column: table.column_names){
             formattedRow.push_back(formatValue(getColumnValue(row, column)));
         }
-        rows.push_back(formattedRow);
+        rows.push_back(std::move(formattedRow));
     }
 
     printSqlTable(title, headers, rows);
@@ -92,12 +93,12 @@ void printSqlTable(const std::string& title, const Table& table){
 
 void printSqlTable(const std::string& title, const ResultTable& table){
     std::vector<std::vector<std::string>> rows;
-    for (ResultRow row: table.rows){
+    for (const ResultRow& row: table.rows){
         std::vector<std::string> formattedRow;
         for (ResultValue value: row.data){
             formattedRow.push_back(formatValue(value));
         }
-        rows.push_back(formattedRow);
+        rows.push_back(std::move(formattedRow));
     }
 
     printSqlTable(title, table.column_names, rows);

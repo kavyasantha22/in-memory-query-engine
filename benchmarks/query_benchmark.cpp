@@ -61,7 +61,7 @@ void bmProjectionAllColumns(benchmark::State& state){
 
 void runFilter(
     benchmark::State& state,
-    std::function<bool(query_engine::Row)> filter,
+    std::function<bool(const query_engine::Row&)> filter,
     std::size_t expectedRows
 ){
     query_engine::Query query = makeDetailQuery({query_engine::ColumnName::TRANSACTION_ID});
@@ -70,13 +70,13 @@ void runFilter(
 }
 
 void bmFilterZeroPercent(benchmark::State& state){
-    runFilter(state, [](query_engine::Row){ return false; }, 0);
+    runFilter(state, [](const query_engine::Row&){ return false; }, 0);
 }
 
 void bmFilterOnePercent(benchmark::State& state){
     runFilter(
         state,
-        [](query_engine::Row row){ return row.transaction_id % 100 == 0; },
+        [](const query_engine::Row& row){ return row.transaction_id % 100 == 0; },
         static_cast<std::size_t>(state.range(0) / 100)
     );
 }
@@ -84,7 +84,7 @@ void bmFilterOnePercent(benchmark::State& state){
 void bmFilterTenPercent(benchmark::State& state){
     runFilter(
         state,
-        [](query_engine::Row row){ return row.category_id == 0; },
+        [](const query_engine::Row& row){ return row.category_id == 0; },
         static_cast<std::size_t>(state.range(0) / 10)
     );
 }
@@ -92,7 +92,7 @@ void bmFilterTenPercent(benchmark::State& state){
 void bmFilterFiftyPercent(benchmark::State& state){
     runFilter(
         state,
-        [](query_engine::Row row){ return row.transaction_id % 2 == 0; },
+        [](const query_engine::Row& row){ return row.transaction_id % 2 == 0; },
         static_cast<std::size_t>(state.range(0) / 2)
     );
 }
@@ -100,7 +100,7 @@ void bmFilterFiftyPercent(benchmark::State& state){
 void bmFilterOneHundredPercent(benchmark::State& state){
     runFilter(
         state,
-        [](query_engine::Row){ return true; },
+        [](const query_engine::Row&){ return true; },
         static_cast<std::size_t>(state.range(0))
     );
 }
@@ -227,7 +227,7 @@ void bmComposedGroupedQuery(benchmark::State& state){
     };
     query_engine::Query query{
         .projection = {query_engine::ColumnName::CATEGORY_ID},
-        .filter = [](query_engine::Row row){ return row.transaction_id % 2 == 0; },
+        .filter = [](const query_engine::Row& row){ return row.transaction_id % 2 == 0; },
         .aggregation = averagePrice,
         .group_by = std::vector<query_engine::ColumnName>{query_engine::ColumnName::CATEGORY_ID},
         .order_by = std::vector<query_engine::OrderByItem>{
@@ -240,7 +240,7 @@ void bmComposedGroupedQuery(benchmark::State& state){
 
 void bmComposedHiddenOrderQuery(benchmark::State& state){
     query_engine::Query query = makeDetailQuery({query_engine::ColumnName::TRANSACTION_ID});
-    query.filter = [](query_engine::Row row){ return row.category_id == 1; };
+    query.filter = [](const query_engine::Row& row){ return row.category_id == 1; };
     query.order_by = std::vector<query_engine::OrderByItem>{
         query_engine::OrderByItem{.expr = query_engine::ColumnName::PRICE, .ascending = false}
     };

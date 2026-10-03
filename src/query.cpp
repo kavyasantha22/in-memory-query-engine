@@ -21,11 +21,11 @@ std::string orderExpressionToString(const OrderExpression& expression) {
 
 class RowComparator {
 public:
-    std::vector<OrderByItem> order_by;
-    std::vector<std::string> column_names;
+    const std::vector<OrderByItem>& order_by;
+    const std::vector<std::string>& column_names;
 
     bool operator()(const ResultRow& left, const ResultRow& right) const {
-        for (OrderByItem order: order_by){
+        for (const OrderByItem& order: order_by){
             int idxSort = -1;
             for (int i = 0; i < (int) column_names.size(); i++){
                 std::string expr_str = orderExpressionToString(order.expr);
@@ -53,7 +53,7 @@ public:
 };
 
 
-void applyOrderBy(ResultTable& result_table, std::vector<OrderByItem> order_by){
+void applyOrderBy(ResultTable& result_table, const std::vector<OrderByItem>& order_by){
     RowComparator row_comparator = {
         .order_by = order_by,
         .column_names = result_table.column_names
@@ -70,13 +70,13 @@ void applyLimit(ResultTable& result_table, size_t limit){
 
 
 std::vector<Row> filterRows(
-    std::vector<Row> rows,
-    std::optional<std::function<bool(Row)>> filter
+    const std::vector<Row>& rows,
+    const std::optional<std::function<bool(const Row&)>>& filter
 ){
     if (!filter) return rows;
 
     std::vector<Row> filtered_rows;
-    for (auto row: rows){
+    for (const Row& row: rows){
         if ((*filter)(row)){
             filtered_rows.push_back(row);
         }
@@ -87,16 +87,16 @@ std::vector<Row> filterRows(
 
 
 std::vector<Group> buildGroups(
-    std::vector<Row> filtered_rows, 
-    std::optional<std::vector<ColumnName>> group_by
+    const std::vector<Row>& filtered_rows, 
+    const std::optional<std::vector<ColumnName>>& group_by
 ){
     std::vector<Group> groups;
     if (group_by){
-        for (auto row: filtered_rows){
+        for (const Row& row: filtered_rows){
             std::vector<ResultValue> new_key;
             std::vector<ColumnName> key_columns;
             Row new_row = row;
-            for (ColumnName col: *group_by){
+            for (const ColumnName& col: *group_by){
                 key_columns.push_back(col);
                 new_key.push_back(getColumnValue(row, col));
             }
@@ -130,14 +130,14 @@ std::vector<Group> buildGroups(
 
 void applyProjection(
     ResultTable& result_table, 
-    std::optional<Aggregation> aggregation, 
-    std::vector<ColumnName> projection
+    const std::optional<Aggregation>& aggregation, 
+    const std::vector<ColumnName>& projection
 ){
     std::vector<ResultRow> temp_rows;
-    for (ResultRow row: result_table.rows){
+    for (const ResultRow& row: result_table.rows){
         ResultRow new_row;
 
-        for (ColumnName col: projection){
+        for (const ColumnName& col: projection){
             int idx = -1;
             for (size_t i = 0; i < result_table.column_names.size(); i++){
                 std::string col_name = result_table.column_names[i];
@@ -172,7 +172,7 @@ void applyProjection(
     }
 
     std::vector<std::string> temp_cols;
-    for (ColumnName col: projection){
+    for (const ColumnName& col: projection){
         temp_cols.push_back(columnNameToString(col));
     }
     if (aggregation){
@@ -186,17 +186,17 @@ void applyProjection(
 
 
 ResultTable buildResultTable(
-    const std::vector<Row> rows,
-    const std::vector<ColumnName> columns
+    const std::vector<Row>& rows,
+    const std::vector<ColumnName>& columns
 ){
     ResultTable result_table;
-    for (ColumnName col: columns){
+    for (const ColumnName& col: columns){
         result_table.column_names.push_back(columnNameToString(col));
     }
 
-    for (Row row: rows){
+    for (const Row& row: rows){
         ResultRow new_row;
-        for (ColumnName col: columns){
+        for (const ColumnName& col: columns){
             new_row.data.push_back(getColumnValue(row, col));
         }
         result_table.rows.push_back(new_row);
@@ -205,9 +205,9 @@ ResultTable buildResultTable(
 }
 
 
-ResultTable buildResultTable(const std::vector<Group> groups, const Query query){
+ResultTable buildResultTable(const std::vector<Group>& groups, const Query& query){
     ResultTable result_table;
-    for (ColumnName col: groups[0].key_columns){
+    for (const ColumnName& col: groups[0].key_columns){
         result_table.column_names.push_back(columnNameToString(col));
     }
 
@@ -216,18 +216,18 @@ ResultTable buildResultTable(const std::vector<Group> groups, const Query query)
         const std::string aggregation_column_name = aggregationToString(aggregation);
         
         result_table.column_names.push_back(aggregation_column_name);
-        for (Group g: groups){
+        for (const Group& g: groups){
             ResultRow curRow;
-            for (ResultValue k: g.key){
+            for (const ResultValue& k: g.key){
                 curRow.data.push_back(k);
             }
             curRow.data.push_back(aggregate(g.rows, aggregation));
             result_table.rows.push_back(curRow);
         }
     }else {
-        for (Group g: groups){
+        for (const Group& g: groups){
             ResultRow curRow;
-            for (ResultValue val: g.key){
+            for (const ResultValue& val: g.key){
                 curRow.data.push_back(val);
             }
             result_table.rows.push_back(curRow);
@@ -238,7 +238,7 @@ ResultTable buildResultTable(const std::vector<Group> groups, const Query query)
 }
 
 
-ResultTable queryTable(Table table, Query query){
+ResultTable queryTable(const Table& table, const Query& query){
     // This is for filter
     std::vector<Row> filtered_rows = filterRows(table.rows, query.filter);
 

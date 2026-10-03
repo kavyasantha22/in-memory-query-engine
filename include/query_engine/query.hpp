@@ -18,7 +18,7 @@ struct OrderByItem{
 
 struct Query {
     std::vector<ColumnName> projection;
-    std::optional<std::function<bool(Row)>> filter;
+    std::optional<std::function<bool(const Row&)>> filter;
     std::optional<Aggregation> aggregation;
     std::optional<std::vector<ColumnName>> group_by;
     std::optional<std::vector<OrderByItem>> order_by;
@@ -27,7 +27,7 @@ struct Query {
     // std::optional<int> limit;
 };
 
-ResultTable queryTable(Table table, Query query);
+ResultTable queryTable(const Table& table, const Query& query);
 
 void insertRow(Table& table, Row row);
 

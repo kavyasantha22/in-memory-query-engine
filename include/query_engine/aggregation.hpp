@@ -19,12 +19,12 @@ struct Aggregation {
     ColumnName column;
 };
 
-ResultValue aggregate(std::vector<Row> rows, Aggregation aggr);
+ResultValue aggregate(const std::vector<Row>& rows, const Aggregation& aggr);
 
-std::vector<ResultValue> aggregateGroups(std::vector<Group> groups, Aggregation aggr);
+std::vector<ResultValue> aggregateGroups(const std::vector<Group>& groups, const Aggregation& aggr);
 
-std::string aggregationTypeToString(AggregationType type);
+std::string aggregationTypeToString(const AggregationType& type);
 
-std::string aggregationToString(Aggregation aggregation);
+std::string aggregationToString(const Aggregation& aggregation);
 
 } // namespace query_engine
