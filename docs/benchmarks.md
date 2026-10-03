@@ -15,6 +15,67 @@ guided tour of the C++ features it uses, see
 For guidance on reading timings, throughput, Big-O coefficients, RMS errors,
 and baseline changes, see [Interpreting Benchmark Results](benchmark-interpretation.md).
 
+## Benchmark branch
+
+The `benchmark` branch preserves the reference implementation and benchmark
+workloads for future optimization comparisons. Commit `d95b94c` introduced
+the current suites, C++ general reporter, and organized project layout.
+
+The branch and the JSON baseline serve different purposes:
+
+- The branch identifies the source code used as the reference.
+- `general-baseline.json` contains measurements collected on a particular
+  machine at a particular time.
+
+The local baseline was refreshed on 3 October 2026 with all 18 general cases.
+It lives under `build/benchmark-clang/benchmark-results/` and is ignored by Git.
+Checking out this branch on another machine will not provide that timing file;
+capture a fresh baseline there before comparing results.
+
+Keep engine optimizations on separate branches. When updating benchmark
+workloads, run both reference and candidate with the same workload definitions
+and settings so the comparison measures the engine change.
+
+### Compare an optimization branch
+
+Use separate worktrees so both revisions have their own build directories.
+From this repository, create a candidate branch based on the reference:
+
+```sh
+git worktree add -b optimize-query ../QueryEngine-candidate benchmark
+```
+
+Implement the optimization in the candidate worktree. When ready to measure,
+capture fresh reference results in the original worktree:
+
+```sh
+cmake --preset benchmark
+cmake --build --preset benchmark --target save_general_benchmark_baseline
+```
+
+Then configure and build the candidate before copying the reference timing
+file into its results directory:
+
+```sh
+cd ../QueryEngine-candidate
+cmake --preset benchmark
+cmake --build --preset benchmark
+mkdir -p build/benchmark-clang/benchmark-results
+cp ../QueryEngine/build/benchmark-clang/benchmark-results/general-baseline.json \
+   build/benchmark-clang/benchmark-results/general-baseline.json
+cmake --build --preset benchmark --target run_general_benchmarks
+```
+
+The candidate summary now compares its measurements with the reference branch.
+Run `run_general_benchmarks` on the candidate after each change. Running
+`save_general_benchmark_baseline` there would replace the reference measurements
+with candidate measurements.
+
+Use the same Mac, compiler, Release settings, power mode, and similar background
+load for both runs. For small changes, repeat and alternate reference and
+candidate runs; a single percentage difference does not establish a regression.
+Record the two commit IDs alongside any results you retain for later analysis.
+
 ## Build
 
 Configure and build the optimized benchmark targets:
