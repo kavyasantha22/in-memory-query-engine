@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <utility>
 
 namespace query_engine {
 
@@ -58,7 +59,12 @@ void applyOrderBy(ResultTable& result_table, const std::vector<OrderByItem>& ord
         .order_by = order_by,
         .column_names = result_table.column_names
     };
-    sort(result_table.rows.begin(), result_table.rows.end(), row_comparator);
+
+    sort(
+        result_table.rows.begin(), 
+        result_table.rows.end(), 
+        std::cref(row_comparator)
+    );
 }
 
 
@@ -95,7 +101,6 @@ std::vector<Group> buildGroups(
 
             std::vector<ResultValue> new_key;
             std::vector<ColumnName> key_columns;
-            Row new_row = row;
             for (const ColumnName& col: *group_by){
                 key_columns.push_back(col);
                 new_key.push_back(getColumnValue(row, col));
@@ -105,17 +110,18 @@ std::vector<Group> buildGroups(
             for (Group& g: groups){
                 if (g.key == new_key){
                     keyExist = true;
-                    g.rows.push_back(new_row);
+                    g.rows.push_back(row_ref);
+                    break;
                 }
             }
 
             if (!keyExist){
                 Group newGroup = {
-                    .key_columns = key_columns,
-                    .key = new_key,
-                    .rows = {row}
+                    .key_columns = std::move(key_columns),
+                    .key = std::move(new_key),
+                    .rows = {row_ref}
                 };
-                groups.push_back(newGroup);
+                groups.push_back(std::move(newGroup));
             }
         }
     }else {
@@ -142,7 +148,7 @@ void applyProjection(
         for (const ColumnName& col: projection){
             int idx = -1;
             for (size_t i = 0; i < result_table.column_names.size(); i++){
-                std::string col_name = result_table.column_names[i];
+                const std::string& col_name = result_table.column_names[i];
                 if (columnNameToString(col) == col_name){
                     idx = i;
                     break;
@@ -159,7 +165,7 @@ void applyProjection(
 
             int idx = -1;
             for (size_t i = 0; i < result_table.column_names.size(); i++){
-                std::string col_name = result_table.column_names[i];
+                const std::string& col_name = result_table.column_names[i];
                 if (aggregation_column_name == col_name){
                     idx = i;
                     break;
@@ -170,7 +176,7 @@ void applyProjection(
                 new_row.data.push_back(row.data[idx]);
             }
         }   
-        temp_rows.push_back(new_row);
+        temp_rows.push_back(std::move(new_row));
     }
 
     std::vector<std::string> temp_cols;
@@ -178,12 +184,11 @@ void applyProjection(
         temp_cols.push_back(columnNameToString(col));
     }
     if (aggregation){
-        const std::string aggregation_column_name = aggregationToString(*aggregation);
-        temp_cols.push_back(aggregation_column_name);
+        temp_cols.push_back(aggregationToString(*aggregation));
     }
 
-    result_table.rows = temp_rows;
-    result_table.column_names = temp_cols;
+    result_table.rows = std::move(temp_rows);
+    result_table.column_names = std::move(temp_cols);
 }
 
 
@@ -203,7 +208,7 @@ ResultTable buildResultTable(
         for (const ColumnName& col: columns){
             new_row.data.push_back(getColumnValue(row, col));
         }
-        result_table.rows.push_back(new_row);
+        result_table.rows.push_back(std::move(new_row));
     }
     return result_table;
 }
@@ -216,17 +221,16 @@ ResultTable buildResultTable(const std::vector<Group>& groups, const Query& quer
     }
 
     if (query.aggregation){
-        const Aggregation aggregation = *query.aggregation;
-        const std::string aggregation_column_name = aggregationToString(aggregation);
+        const Aggregation& aggregation = *query.aggregation;
         
-        result_table.column_names.push_back(aggregation_column_name);
+        result_table.column_names.push_back(aggregationToString(aggregation));
         for (const Group& g: groups){
             ResultRow curRow;
             for (const ResultValue& k: g.key){
                 curRow.data.push_back(k);
             }
             curRow.data.push_back(aggregate(g.rows, aggregation));
-            result_table.rows.push_back(curRow);
+            result_table.rows.push_back(std::move(curRow));
         }
     }else {
         for (const Group& g: groups){
@@ -234,7 +238,7 @@ ResultTable buildResultTable(const std::vector<Group>& groups, const Query& quer
             for (const ResultValue& val: g.key){
                 curRow.data.push_back(val);
             }
-            result_table.rows.push_back(curRow);
+            result_table.rows.push_back(std::move(curRow));
         }
     }
 
