@@ -46,7 +46,7 @@ inline void recordRows(benchmark::State& state, std::int64_t rowCount){
 
 inline void runQuery(
     benchmark::State& state,
-    query_engine::Query query,
+    const query_engine::Query& query,
     std::size_t expectedRows
 ){
     const std::int64_t rowCount = state.range(0);

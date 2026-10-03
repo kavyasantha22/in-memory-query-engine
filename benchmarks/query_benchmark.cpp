@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <functional>
 #include <optional>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -15,7 +16,7 @@ using benchmarkSupport::runQuery;
 
 query_engine::Query makeDetailQuery(std::vector<query_engine::ColumnName> projection){
     return query_engine::Query{
-        .projection = projection,
+        .projection = std::move(projection),
         .filter = std::nullopt,
         .aggregation = std::nullopt,
         .group_by = std::nullopt,
@@ -65,7 +66,7 @@ void runFilter(
     std::size_t expectedRows
 ){
     query_engine::Query query = makeDetailQuery({query_engine::ColumnName::TRANSACTION_ID});
-    query.filter = filter;
+    query.filter = std::move(filter);
     runQuery(state, query, expectedRows);
 }
 
@@ -167,7 +168,7 @@ query_engine::Query makeGroupedSumQuery(std::vector<query_engine::ColumnName> gr
             .type = query_engine::AggregationType::SUM,
             .column = query_engine::ColumnName::PRICE
         },
-        .group_by = groupBy,
+        .group_by = std::move(groupBy),
         .order_by = std::nullopt,
         .limit = std::nullopt
     };
