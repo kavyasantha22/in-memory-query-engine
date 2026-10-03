@@ -424,29 +424,41 @@ C uses cast syntax such as `(uint64_t)row_count`. C++ supports that syntax too,
 but named casts make intent easier to search and prevent some unsafe
 conversions.
 
-## Pass-by-value is part of the measurement
+## Borrowed inputs and owning outputs
 
-The shared query runner receives `Query` by value:
+The shared query runner borrows `Query`:
 
 ```cpp
 inline void runQuery(
     benchmark::State& state,
-    query_engine::Query query,
+    const query_engine::Query& query,
     std::size_t expectedRows
 )
 ```
 
-More importantly, the production API currently receives both `Table` and
-`Query` by value:
+The production API also borrows its read-only inputs:
 
 ```cpp
-ResultTable queryTable(Table table, Query query);
+ResultTable queryTable(const Table& table, const Query& query);
 ```
 
-Copying a `Table` deep-copies its `std::vector<Row>`. The benchmark deliberately
-does not change this to references because it is measuring the public API as a
-caller experiences it today. If the production signature later changes to
-`const Table&`, the benchmark should reveal that improvement.
+The original baseline copied its table and query on each call. The current
+API eliminates those deep copies while still measuring the public API as a
+caller experiences it. Query execution constructs filtered row wrappers inside
+the timed call; those selection costs remain part of the measurement.
+
+Direct aggregation receives a vector of `std::reference_wrapper<const Row>`.
+The shared aggregation runner builds it once, outside the timed loop, while
+the owning table remains alive and unchanged. Thus this benchmark measures
+aggregation on an already prepared selection, not wrapper construction.
+Benchmark setup moves finished projection/grouping vectors and callbacks into
+queries. These setup changes are outside timing and are not query speedups.
+
+Groups own their wrapper vectors but borrow source rows. Output tables own
+numeric values; completed output rows and vectors transfer buffers using
+`std::move`. Returned temporaries need no explicit move, and ordinary local
+return statements permit copy elision. Moving a numeric value is not cheaper
+than copying it, and moving a const object may select a copy instead.
 
 C++ distinguishes copying from moving. Standard containers define both copy
 and move operations, and returned local objects can also benefit from copy

@@ -197,6 +197,10 @@ private:
         MeasurementMap baseline;
         if (!options_.baselinePath.has_value()
             || !std::filesystem::exists(*options_.baselinePath)){
+            if (options_.baselinePath.has_value()){
+                std::cerr << "No checkpoint comparison available: reference file not found: "
+                          << options_.baselinePath->string() << '\n';
+            }
             return baseline;
         }
 

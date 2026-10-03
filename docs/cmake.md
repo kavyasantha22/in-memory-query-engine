@@ -168,9 +168,14 @@ select representative registrations and produce grouped JSON directly in C++.
 The `run_general_benchmarks`, `run_benchmarks`, and `run_stress_benchmarks`
 custom targets execute these programs with consistent repetition settings and
 save JSON output under `build/benchmark-clang/benchmark-results`.
-`save_general_benchmark_baseline` records a concise local reference for later
-general runs. See [Benchmark Guide](benchmarks.md) for the workload matrix and
-comparison workflow.
+`run_general_benchmarks` compares with `general-best.json` when present; it never
+promotes results. `save_general_benchmark_baseline` independently records the
+current checkout into `general-baseline.json`, leaving the latest and best
+files untouched. Run it in the baseline worktree for the original reference.
+The [benchmark guide](benchmarks.md) explains explicit checkpoint promotion.
+
+See [Benchmark Guide](benchmarks.md) for the workload matrix and comparison
+workflow.
 
 ## CMakePresets.json
 

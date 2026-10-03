@@ -120,7 +120,7 @@ if(QUERY_ENGINE_BUILD_BENCHMARKS)
         COMMAND
             $<TARGET_FILE:query_engine_general_benchmark>
             --general_summary=${BENCHMARK_RESULTS_DIR}/general-latest.json
-            --general_baseline=${BENCHMARK_RESULTS_DIR}/general-baseline.json
+            --general_baseline=${BENCHMARK_RESULTS_DIR}/general-best.json
             --benchmark_min_time=0.1s
             --benchmark_repetitions=5
             --benchmark_enable_random_interleaving
@@ -132,14 +132,18 @@ if(QUERY_ENGINE_BUILD_BENCHMARKS)
 
     add_custom_target(
         save_general_benchmark_baseline
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${BENCHMARK_RESULTS_DIR}
         COMMAND
-            ${CMAKE_COMMAND} -E copy_if_different
-            ${BENCHMARK_RESULTS_DIR}/general-latest.json
-            ${BENCHMARK_RESULTS_DIR}/general-baseline.json
+            $<TARGET_FILE:query_engine_general_benchmark>
+            --general_summary=${BENCHMARK_RESULTS_DIR}/general-baseline.json
+            --benchmark_min_time=0.1s
+            --benchmark_repetitions=5
+            --benchmark_enable_random_interleaving
+            --benchmark_report_aggregates_only=true
         COMMAND
             ${CMAKE_COMMAND} -E echo
             "Baseline: ${BENCHMARK_RESULTS_DIR}/general-baseline.json"
-        DEPENDS run_general_benchmarks
+        DEPENDS query_engine_general_benchmark
         USES_TERMINAL
         VERBATIM
     )

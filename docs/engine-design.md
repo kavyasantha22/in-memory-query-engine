@@ -17,10 +17,11 @@ or network service. SQL examples describe query intent; the executable input
 is C++ objects.
 
 The current implementation favors visible execution stages and ordinary
-standard-library containers. Its copies and intermediate tables also provide
-measurable targets for later optimization experiments. This makes a useful
-learning baseline, but its implementation should not be read as a recommended
-production database design.
+standard-library containers. Read-only inputs and source rows are borrowed;
+completed intermediate buffers move into their owners. Remaining intermediate
+tables and allocations provide measurable targets for later experiments.
+`main` is the best verified implementation so far, not a claim of global
+optimality. See [optimization history](optimization-history.md) for checkpoints.
 
 ## Code organization
 
@@ -82,11 +83,13 @@ The column list is metadata, not a schema validator. Callers constructing a
 grouping, ordering, and limit clauses. `std::optional` distinguishes an absent
 clause from a supplied value, including `LIMIT 0`.
 
-The filter is `std::function<bool(Row)>`. Callers can supply lambdas with
+The filter is `std::function<bool(const Row&)>`. Callers can supply lambdas with
 arbitrary conditions or captured parameters. This is convenient and flexible,
 but predicates are opaque to the engine: it cannot inspect them to choose an
-index or rewrite expressions. The signature also passes each row by value and
-uses type-erased function dispatch.
+index or rewrite expressions. The signature borrows each row and uses
+type-erased function dispatch. A by-value lambda can still copy its argument;
+use `const Row&` in the lambda too. A const query does not make captured
+callback state immutable: mutable predicates can retain state across calls.
 
 Grouping takes a vector of column identifiers. Ordering takes a vector of
 `OrderByItem`, each with its own direction and an expression represented as
@@ -110,20 +113,21 @@ as the result has column names.
 
 ## Execution workflow
 
-The public entry point takes its inputs by value:
+The public entry point borrows its inputs:
 
 ```cpp
-ResultTable queryTable(Table table, Query query);
+ResultTable queryTable(const Table& table, const Query& query);
 ```
 
-Passing existing lvalues copies the table and query before execution starts.
-Several helpers then take vectors and rows by value, causing additional copies.
+Passing existing lvalues does not copy the table or query. The caller keeps
+the table alive and unchanged during execution, including through callbacks.
+The returned `ResultTable` owns its values independently of the input table.
 
 The main execution path is:
 
 ```mermaid
 flowchart TD
-    A[Table and Query passed by value] --> B[filterRows]
+    A[Borrow Table and Query] --> B[filterRows]
     B --> C{Any rows remain?}
     C -- No --> D[Create empty result schema and apply projection]
     D --> Z[Return ResultTable]
@@ -140,12 +144,13 @@ flowchart TD
 
 ### 1. Filter input
 
-`filterRows()` scans the input when a predicate exists and copies matching rows
-into a new vector. Without a predicate, it returns its row vector directly.
+`filterRows()` scans the input and stores `std::reference_wrapper<const Row>`
+for matching rows. Without a predicate, it wraps every row. Selections own
+their wrapper vectors, not the source rows; copying a wrapper copies an alias.
 
 Keeping filtering separate makes the selected input easy to inspect and reuse
-for either detail or aggregate queries. Materializing that input consumes
-memory and requires subsequent stages to scan it again.
+for either detail or aggregate queries. Materializing the selection consumes
+memory for wrappers and requires subsequent stages to scan it again.
 
 If no rows remain, `queryTable()` returns early. It creates result metadata and
 applies projection, but does not execute aggregation. Thus a scalar aggregate
@@ -170,19 +175,23 @@ aggregate operation is requested.
 
 ### 3. Build groups and aggregate
 
-A `Group` stores its key columns, a vector of variant key values, and complete
-source rows. For each input row, the engine builds a key and searches the vector
+A `Group` owns its key columns, variant key values, and a vector of read-only
+row wrappers. For each input row, the engine builds a key and searches the vector
 of existing groups for a match.
 
 This supports multiple numeric grouping columns without a custom hash function.
 It also allows existing aggregate functions to run on each group's rows.
 However, grouping takes roughly `O(N * G)` key searches for `N` rows and `G`
 groups, with additional cost for wider keys. Unique keys can make it quadratic.
-It also retains full rows and rescans them during aggregation.
+It retains row references and rescans source rows during aggregation. Groups
+do not depend on the filtered wrapper vector's lifetime, but the source rows
+must remain alive at stable addresses. Moving or destroying the source data,
+or reallocating its row vector, can invalidate those references.
 
 Aggregate functions implement COUNT, SUM, AVG, MIN, and MAX. SUM and the extrema
 convert source values to `double`; COUNT returns an integer. AVG calculates SUM
-and COUNT separately, with repeated scans and vector copies. Converting large
+and COUNT separately, with separate helper calls but no row-vector copies.
+The compiler may simplify the count loop. Converting large
 integers to `double` can lose precision.
 
 ### 4. Sort before final projection
@@ -194,7 +203,9 @@ direction.
 
 Expressions are matched to result columns by their string names. This is simple
 and supports sorting by the selected aggregate, but the comparator repeatedly
-builds expression names and searches metadata during comparisons.
+builds expression names and searches metadata during comparisons. The comparator
+borrows ordering and column metadata and is passed through `std::cref`; these
+objects outlive the synchronous sort and stay unchanged while it runs.
 
 Delaying projection preserves ordinary source columns for hidden sorting. In
 grouped results it preserves group keys, including keys omitted from projection.
@@ -226,8 +237,9 @@ optimizations with query-dependent applicability.
 the intermediate column names with final names.
 
 Projection removes hidden sorting values and keeps query output order separate
-from intermediate layout. It also copies result rows and repeatedly looks up
-column names. A requested column missing from the intermediate schema is
+from intermediate layout. It borrows intermediate rows, copies selected numeric
+values into owning output rows, and moves completed rows and buffers into the
+result. It still repeatedly looks up column names. A requested column missing from the intermediate schema is
 skipped when copying values, but still added to output metadata; invalid query
 combinations can therefore produce mismatched row and schema widths.
 
@@ -242,6 +254,16 @@ Column widths are computed from the rendered contents, and doubles display two
 decimal places. This formatting rounds presentation only; it does not change
 stored results. Formatting allocates strings and buffers and sits outside the
 timed query benchmarks.
+
+### Copy and move conventions
+
+Use const references for read-only large inputs and wrappers for borrowed rows.
+Use `std::move` on finished, non-const local vectors/rows when ownership transfers;
+do not read their old contents afterward. `std::move` is a cast, not a transfer
+by itself, and moving a const string normally copies. Returned temporaries
+already select rvalue insertion overloads. Keep `return result_table;` so copy
+elision or implicit moving can apply. Numeric enums, rows, and variants are
+inexpensive to copy; moves primarily help their vector-owning containers.
 
 ## Advantages of the current design
 
@@ -265,7 +287,7 @@ The main limitations are broader than performance:
   without a dedicated empty-input branch.
 - Only one selected aggregate exists; order-only aggregates are unavailable.
 - Projection cannot express computed values, aliases, nulls, or strings.
-- Grouping is based on linear searches and complete-row storage.
+- Grouping is based on linear searches and borrowed-row selections.
 - Floating-point and large-integer edge cases lack comprehensive policies.
 - Generated timestamps depend on the system clock, although other generated
   values follow predictable formulas.
@@ -280,8 +302,8 @@ establish SQL compatibility or correctness for every possible `Query` object.
 
 Choose explicit result contracts and add focused tests before changing behavior.
 For performance experiments, retain the reference revision and compare the same
-workloads against fresh local measurements. Removing unnecessary parameter
-copies is a small initial experiment; fusing execution, maintaining aggregate
+workloads against fresh local measurements. The object-semantics checkpoint
+removes unnecessary parameter and buffer copies; fusing execution, maintaining aggregate
 states, hash grouping, top-K selection, and column storage change progressively
 more of the architecture.
 

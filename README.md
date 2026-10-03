@@ -9,6 +9,8 @@ results under `build/` are local measurements and are not committed.
 
 Read the [engine design and workflow](docs/engine-design.md) for execution
 stages, design tradeoffs, advantages, and current limitations.
+See [optimization history](docs/optimization-history.md) for verified checkpoints,
+measured progress, and explicit promotion of a best-checkpoint reference.
 
 The public API lives in `namespace query_engine`. Include
 `query_engine/query_engine.hpp` and use qualified names such as

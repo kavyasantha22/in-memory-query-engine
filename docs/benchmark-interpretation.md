@@ -27,7 +27,9 @@ Three columns             1,000,000   142.30 ms       7.03 M/s        +8.4%
 - `Rows` is the logical input size, also called `N` in complexity analysis.
 - `Time` is the median elapsed wall-clock time for one benchmark iteration.
 - `Throughput` is the number of input rows processed per second.
-- `vs baseline` compares median wall time with `general-baseline.json`.
+- `vs baseline` is the reporter's generic reference label. The default target
+  compares median wall time with the nominated `general-best.json`; explicit
+  runs can instead select the original `general-baseline.json`.
 
 A positive time delta means the candidate is slower. A negative time delta
 means it is faster. Do not treat a small delta as a regression until repeated
@@ -244,13 +246,14 @@ size is bounded by ten.
 
 ## Baseline comparisons
 
-Create a local baseline with:
+Capture the original reference in its baseline worktree with:
 
 ```sh
 cmake --build --preset benchmark --target save_general_benchmark_baseline
 ```
 
-After changing the engine, run:
+Explicitly nominate a best checkpoint using the promotion commands in the
+[benchmark guide](benchmarks.md#general-suite). After changing the engine, run:
 
 ```sh
 cmake --build --preset benchmark --target run_general_benchmarks
@@ -307,7 +310,8 @@ The reporting workflow produces:
 
 ```text
 general-latest.json   concise grouped medians and baseline changes
-general-baseline.json saved local general-suite reference
+general-baseline.json original local general-suite reference
+general-best.json     explicitly nominated checkpoint reference
 latest.json           complete normal-suite results and repetitions
 stress-latest.json    extreme-size benchmark results
 ```

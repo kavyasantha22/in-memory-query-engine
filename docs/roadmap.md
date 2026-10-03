@@ -114,7 +114,7 @@ struct OrderByItem {
 
 struct Query {
     std::vector<ColumnName> projection;
-    std::optional<std::function<bool(Row)>> filter;
+    std::optional<std::function<bool(const Row&)>> filter;
     std::optional<Aggregation> aggregation;
     std::optional<std::vector<ColumnName>> group_by;
     std::optional<std::vector<OrderByItem>> order_by;
@@ -290,16 +290,16 @@ an explicit contract and query-level tests.
 
 ---
 
-## Current baseline execution flow
+## Current main execution flow
 
 ### Detail query (no grouping or aggregation)
 
 ```text
-Copy input table
+Borrow input table and query
     ↓
-Filter input rows, or copy them unchanged when no filter is supplied
+Filter input rows, or select all rows when no filter is supplied
     ↓
-Copy matching rows into filtered_rows
+Store read-only row wrappers in filtered_rows
     ↓
 Materialize all table columns as result values
     ↓
@@ -313,11 +313,11 @@ Return ResultTable
 ### Grouping or aggregation query
 
 ```text
-Copy input table
+Borrow input table and query
     ↓
-Filter input rows, or copy them unchanged when no filter is supplied
+Filter input rows, or select all rows when no filter is supplied
     ↓
-Copy matching rows into filtered_rows
+Store read-only row wrappers in filtered_rows
     ↓
 Build groups by comparing keys against a vector of existing groups
     ↓
@@ -330,11 +330,13 @@ Apply ORDER BY and LIMIT, then project keys and append the aggregate
 Return ResultTable
 ```
 
-This is deliberately inefficient and is useful as the baseline for future optimization experiments.
+The original baseline retains by-value inputs and copied rows. Current main
+borrows source rows and moves completed output buffers; further algorithmic
+optimizations remain separate experiments. See [optimization history](optimization-history.md).
 
 Empty filtered input takes an early return before grouping, aggregation,
-ordering, and limiting. Aggregation functions and intermediate builders still
-copy their inputs. Grouping searches existing groups linearly rather than using
+ordering, and limiting. Aggregation functions and intermediate builders borrow
+their inputs. Grouping searches existing groups linearly rather than using
 a hash map.
 
 ---
@@ -663,7 +665,7 @@ Every optimized implementation must satisfy:
 
 ## Optimization 1 — Remove unnecessary parameter copies
 
-Current behavior copies:
+Completed in the object-semantics checkpoint. The original baseline copied:
 
 - `Table`
 - `Query`
@@ -676,7 +678,7 @@ Possible changes:
 const query_engine::Table&
 const query_engine::Query&
 const query_engine::Row&
-const std::vector<query_engine::Row>&
+const std::vector<std::reference_wrapper<const query_engine::Row>>&
 ```
 
 Purpose:
@@ -688,7 +690,9 @@ Purpose:
 
 ## Optimization 2 — Move result rows
 
-Pending in query execution: intermediate and result vectors still use copies.
+Completed in query execution: finished groups, result rows, and projection
+buffers move into their owners. Numeric values and borrowed wrappers still copy
+where appropriate; not every copy needs elimination.
 
 Replace copies such as:
 
@@ -1015,9 +1019,9 @@ Deliverable:
 
 ## Stage 3 — Basic C++ optimizations
 
-- [ ] Remove unnecessary copies
-- [ ] Replace expensive production parameter copies with references
-- [ ] Use move semantics for query intermediates and result rows
+- [x] Remove unnecessary input and completed-buffer copies
+- [x] Replace expensive production parameter copies with references
+- [x] Use move semantics for query intermediates and result rows
 - [ ] Reserve query intermediate vectors (generation and insertion already do)
 - [ ] Reduce temporary objects
 - [ ] Reduce repeated scans
@@ -1110,7 +1114,8 @@ Recommended order:
    filtering before grouping, empty input, and multiple grouping-key types.
 3. Cover the chosen empty-input and empty-projection contracts at query level.
 4. Keep the reference revision and benchmark workloads fixed for comparisons.
-5. On an optimization branch, start with removing unnecessary parameter copies.
+5. Preserve the object-semantics checkpoint, then isolate the next optimization
+   on an experiment branch when trying a competing approach.
 6. Run correctness tests and compare fresh reference and candidate measurements
    on the same machine using the [branch comparison workflow](benchmarks.md#baseline-branch).
 

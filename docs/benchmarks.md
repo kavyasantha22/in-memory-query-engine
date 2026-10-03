@@ -4,9 +4,10 @@ The performance suite measures the public query engine APIs with Google
 Benchmark. It is split into a normal suite for regular development and an
 opt-in stress suite for high-memory workloads.
 
-The suite measures current behavior as implemented. In particular,
-`queryTable`, `aggregate`, and several helper paths currently accept large
-objects by value. Those copies are intentionally included in the results.
+The suite measures current public API behavior. Query execution borrows the
+table and query, constructs row selections, and returns an owning result.
+Direct aggregation uses a wrapper selection prepared outside timing.
+See [optimization history](optimization-history.md) for measured checkpoints.
 
 For an explanation of why the benchmark code is structured this way and a
 guided tour of the C++ features it uses, see
@@ -40,17 +41,22 @@ cmake --build --preset benchmark
 mkdir -p build/benchmark-clang/benchmark-results
 cp ../QueryEngine-baseline/build/benchmark-clang/benchmark-results/general-baseline.json \
    build/benchmark-clang/benchmark-results/general-baseline.json
-cmake --build --preset benchmark --target run_general_benchmarks
+./build/benchmark-clang/query_engine_general_benchmark \
+  --general_summary=build/benchmark-clang/benchmark-results/general-vs-original.json \
+  --general_baseline=build/benchmark-clang/benchmark-results/general-baseline.json \
+  --benchmark_min_time=0.1s --benchmark_repetitions=5 \
+  --benchmark_enable_random_interleaving --benchmark_report_aggregates_only=true
 ```
 
 These paths assume the development checkout is named `QueryEngine`; adjust
 them if your checkout has a different name. Create the reference worktree once
 and reuse it for later measurements.
 
-The development summary now compares against the reference implementation.
-Running `save_general_benchmark_baseline` in the development checkout replaces
-that comparison file with measurements of the development code. Use it there
-only when deliberately establishing a new local reference.
+This explicit run compares against the original reference implementation.
+The normal `run_general_benchmarks` target instead uses `general-best.json`.
+Running `save_general_benchmark_baseline` deliberately captures the current
+checkout into `general-baseline.json`, without changing the best checkpoint or
+latest report. Use the baseline worktree when capturing the original reference.
 
 Use identical workload definitions, compiler and build settings, and the same
 machine under similar conditions. For small changes, repeat and alternate
@@ -103,25 +109,42 @@ complete queries, and insertion, and 100K rows for ordering. These sizes make
 the cases large enough to expose meaningful costs without turning the general
 report into a stress test.
 
-To establish the current checkout as a new local timing reference, run:
-
-```sh
-cmake --build --preset benchmark --target save_general_benchmark_baseline
-```
-
-This runs the general suite and copies the summary to:
+The default comparison reference is:
 
 ```text
-build/benchmark-clang/benchmark-results/general-baseline.json
+build/benchmark-clang/benchmark-results/general-best.json
 ```
 
-For comparisons against the `baseline` branch, capture this file in its
-reference worktree and copy it here as described above.
+If it does not exist, the reporter explicitly says no checkpoint comparison is
+available and produces measurements with null comparison fields. A missing
+reference is not evidence of an improvement.
 
-Later general runs automatically compare matching cases with that file. The
+After reviewing results and correctness, explicitly promote an archived,
+revision-identified report (substitute the checkpoint you reviewed):
+
+```sh
+cp build/benchmark-clang/benchmark-results/checkpoints/dc9bc85/summary.json \
+   build/benchmark-clang/benchmark-results/general-best.json
+cp build/benchmark-clang/benchmark-results/checkpoints/dc9bc85/metadata.json \
+   build/benchmark-clang/benchmark-results/general-best.metadata.json
+```
+
+The copy commands above are promotion, not part of a normal run. Keep the
+original `general-baseline.json` unchanged. The metadata companion identifies
+the measured revision and environment; the benchmark reporter reads only the
+timing JSON. Do not promote a mix of fastest cases from different revisions.
+
+Later general runs automatically compare matching cases with the best file. The
 console and JSON summary then show percentage changes. A positive time change
 means slower; a negative time change means faster. For throughput, the meaning
 is reversed: positive means more rows processed per second.
+
+Archive `general-latest.json` before another run overwrites it. Re-measure the
+best revision under comparable conditions when compiler, machine, workload, or
+system state changes. "Best" is your reviewed checkpoint, not an automated
+winner across workloads. Raw per-repetition JSON can also be requested using
+`--benchmark_out=<path> --benchmark_out_format=json`; omit
+`--benchmark_report_aggregates_only=true` when collecting it.
 
 ## Normal suite
 
@@ -171,6 +194,83 @@ filtering, direct SUM, and reserved and unreserved insertion. Sorting and
 high-cardinality grouping are intentionally excluded at this size because
 their current memory and runtime costs are not bounded enough for a reliable
 local workflow.
+
+## Standardized paired measurements
+
+Use the orchestration script to generate evidence for Markdown documentation:
+
+```sh
+bash scripts/benchmark-checkpoints.sh --reference baseline --candidate HEAD
+```
+
+For the next improvement, compare against the nominated checkpoint instead:
+
+```sh
+bash scripts/benchmark-checkpoints.sh --candidate HEAD
+```
+
+The second command requires `general-best.metadata.json` with its `revision`.
+An explicit `--reference <commit-or-tag>` overrides that choice. Both revisions
+are resolved to commits before execution; working-tree edits are not measured.
+Commit candidate implementation changes before measuring them. Equal revisions
+are permitted for calibration, but the report labels them repeatability checks,
+not improvements.
+
+The script requires Bash, Git, CMake, and jq. Bash orchestrates processes and jq
+parses structured JSON; timed engine work still runs in the existing C++
+executables. Each revision uses its own detached worktree and Release build.
+Compiler versions and engine flags must match. Cached dependency sources are
+reused when committed CMake declarations match; otherwise CMake may need network
+access. Builds finish before sequential measurements start.
+
+Defaults are three alternating paired rounds, ten repetitions, and a 1-second
+minimum per repetition. This can take 20 minutes or more. Stay on AC power and
+avoid concurrent heavy tasks. These settings reduce noise, not eliminate it.
+Change them explicitly when needed:
+
+```sh
+bash scripts/benchmark-checkpoints.sh --reference dc9bc85 --candidate HEAD \
+  --rounds 3 --repetitions 10 --min-time 1s --jobs 4
+```
+
+`--jobs` controls builds only. Results go into a new timestamped directory under
+`build/benchmark-clang/benchmark-results/comparisons/`; `--output <new-directory>`
+overrides it. Existing directories are rejected to prevent accidental overwrite.
+
+The archive contains:
+- `comparison.md`: the documentation-ready table and interpretation caveats.
+- `comparison.json`: full-precision medians, ranges, percentage reductions, and speedups.
+- `reference/` and `candidate/`: three round summaries, raw repetitions, logs,
+  exact command files, compiler/flags files, metadata, and `summary.json`.
+
+The table uses the median of round medians and their minimum-maximum range.
+Positive time reduction means faster (unlike the reporter's positive time-change
+convention). Ranges that overlap are labeled inconclusive, conservatively; this
+is not a formal significance test. Workload identities must match, and benchmark
+errors abort the run. Copy the report's relevant table and provenance into
+[optimization history](optimization-history.md), retaining its raw archive.
+Benchmark definitions should still be reviewed for semantic equivalence across
+revisions; matching names alone cannot guarantee equivalent workloads.
+
+Successful runs remove only the worktrees they created. Failed/interrupted runs
+retain worktrees and logs for investigation. Baseline/best files and Git tags
+are never changed. To promote reviewed results, use the earlier explicit copy
+commands with `candidate/summary.json` and `candidate/metadata.json` instead of
+the historical checkpoint paths.
+
+For a fast setup check (not performance evidence):
+
+```sh
+bash scripts/benchmark-checkpoints.sh --reference baseline --candidate HEAD \
+  --rounds 1 --repetitions 2 --dry-run
+```
+
+Report calculation/validation tests can be run separately, without builds or
+measurements:
+
+```sh
+bash scripts/test-benchmark-report.sh
+```
 
 ## Focused runs
 
