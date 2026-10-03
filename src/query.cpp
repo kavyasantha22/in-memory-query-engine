@@ -23,18 +23,13 @@ std::string orderExpressionToString(const OrderExpression& expression) {
 class RowComparator {
 public:
     const std::vector<OrderByItem>& order_by;
-    const std::vector<std::string>& column_names;
+    const std::vector<int>& order_by_column_idx;
 
     bool operator()(const ResultRow& left, const ResultRow& right) const {
-        for (const OrderByItem& order: order_by){
-            int idxSort = -1;
-            for (int i = 0; i < (int) column_names.size(); i++){
-                std::string expr_str = orderExpressionToString(order.expr);
-                if (column_names[i] == expr_str){
-                    idxSort = i;
-                    break;
-                }
-            }
+        for (size_t i = 0; i < order_by.size(); i++){
+            const OrderByItem& order = order_by[i];
+            int idxSort = order_by_column_idx[i];
+
             if (idxSort == -1) continue;
 
             ResultValue left_val = left.data[idxSort];
@@ -54,10 +49,62 @@ public:
 };
 
 
+std::vector<int> convertToColumnIdx(
+    const std::vector<std::string>& table_columns, 
+    const std::vector<std::string>& query_columns
+){
+    std::vector<int> column_idx;
+
+    for (const auto& query_col: query_columns){
+        int col_idx = -1;
+        for (size_t i = 0; i < table_columns.size(); i++){
+            if (table_columns[i] == query_col){
+                col_idx = i;
+                break;
+            }
+        }
+        column_idx.push_back(col_idx);
+    }
+    return column_idx;
+}
+
+
+std::vector<int> convertToColumnIdx(
+    const std::vector<std::string>& table_columns, 
+    const std::vector<ColumnName>& query_columns
+){
+    std::vector<int> column_idx;
+
+    for (const auto& query_col: query_columns){
+        std::string string_query_col = columnNameToString(query_col);
+
+        int col_idx = -1;
+        for (size_t i = 0; i < table_columns.size(); i++){
+            if (table_columns[i] == string_query_col){
+                col_idx = i;
+                break;
+            }
+        }
+        column_idx.push_back(col_idx);
+    }
+    return column_idx;
+}
+
+
 void applyOrderBy(ResultTable& result_table, const std::vector<OrderByItem>& order_by){
+    std::vector<std::string> order_by_column_names;
+    for (const OrderByItem& order: order_by){
+        order_by_column_names.push_back(orderExpressionToString(order.expr));
+    }
+
+    std::vector<int> order_by_column_idx = convertToColumnIdx(
+        result_table.column_names, 
+        order_by_column_names
+    );
+
     RowComparator row_comparator = {
         .order_by = order_by,
-        .column_names = result_table.column_names
+        .order_by_column_idx = order_by_column_idx
     };
 
     sort(
@@ -94,6 +141,7 @@ std::vector<Group> buildGroups(
     const std::vector<std::reference_wrapper<const Row>>& filtered_rows, 
     const std::optional<std::vector<ColumnName>>& group_by
 ){
+
     std::vector<Group> groups;
     if (group_by){
         for (const auto& row_ref: filtered_rows){
@@ -142,19 +190,15 @@ void applyProjection(
     const std::vector<ColumnName>& projection
 ){
     std::vector<ResultRow> temp_rows;
+    std::vector<int> projection_column_idx = convertToColumnIdx(
+        result_table.column_names, 
+        projection
+    );
+
     for (const ResultRow& row: result_table.rows){
         ResultRow new_row;
 
-        for (const ColumnName& col: projection){
-            int idx = -1;
-            for (size_t i = 0; i < result_table.column_names.size(); i++){
-                const std::string& col_name = result_table.column_names[i];
-                if (columnNameToString(col) == col_name){
-                    idx = i;
-                    break;
-                }
-            }
-
+        for (int idx: projection_column_idx){
             if (idx != -1){
                 new_row.data.push_back(row.data[idx]);
             }
