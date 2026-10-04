@@ -119,13 +119,17 @@ If it does not exist, the reporter explicitly says no checkpoint comparison is
 available and produces measurements with null comparison fields. A missing
 reference is not evidence of an improvement.
 
-After reviewing results and correctness, explicitly promote an archived,
-revision-identified report (substitute the checkpoint you reviewed):
+The current nominated reference is the precomputed-values checkpoint
+`89ca7cd`, promoted on 4 October 2026. Its capture conditions, measurements,
+and limitations are recorded in [optimization history](optimization-history.md#current-reference-precomputed-values).
+This is the new local comparison baseline; the original baseline remains fixed.
+
+To reproduce that explicit promotion from its local archive:
 
 ```sh
-cp build/benchmark-clang/benchmark-results/checkpoints/dc9bc85/summary.json \
+cp build/benchmark-clang/benchmark-results/checkpoints/precomputed-values-89ca7cd/candidate/summary.json \
    build/benchmark-clang/benchmark-results/general-best.json
-cp build/benchmark-clang/benchmark-results/checkpoints/dc9bc85/metadata.json \
+cp build/benchmark-clang/benchmark-results/checkpoints/precomputed-values-89ca7cd/candidate/metadata.json \
    build/benchmark-clang/benchmark-results/general-best.metadata.json
 ```
 

@@ -4,6 +4,103 @@ This document preserves completed implementations and their evidence. Current
 execution design lives in [engine design](engine-design.md); routine commands
 and promotion rules live in the [benchmark guide](benchmarks.md).
 
+## Current Reference: Precomputed Values
+
+Promoted on 4 October 2026 at the developer's request.
+
+- Active reference: `89ca7cddb972f669c27387a18e9108c87f78280c` on `main`.
+- Implementation commits: `73caa34` (cached projection and sorting indices),
+  `ea33db6` (cached aggregate projection lookup and accessor experiment), and
+  `552a37e` (fixed function-pointer accessor array). `89ca7cd` documents
+  the earlier experiment; it is the exact measured checkout.
+- Previous comparison reference: `dc9bc85776e6d5c2d5223e974324c7fc9a1df32d`.
+- All seven correctness tests passed before measurement. Both revisions built
+  independently with the same compiler and Release flags.
+- `general-best.json` and `general-best.metadata.json` now contain this
+  checkpoint's measurements and revision provenance. This is the **new local
+  comparison baseline**, not a replacement for the historical `baseline`
+  branch or `general-baseline.json`. No Git tag was created.
+
+### Design And Scope
+
+Projection and ORDER BY resolve requested column indices before processing
+output rows or comparing them. Comparisons reuse those indices rather than
+converting expression names and searching result metadata repeatedly.
+Aggregate projection resolves its output-column index before its row loop.
+Field access uses a fixed array of function pointers rather than the previous
+`std::function` vector.
+
+The measurements below compare the complete checkpoint with object semantics.
+They do not isolate the contribution of each change, and they do not establish
+that function pointers are faster than the original switch. The earlier
+six-case accessor experiment measured `std::function` versus a switch, not
+this function-pointer implementation. Group lookup is still a linear scan;
+hash-based grouping is not part of this checkpoint.
+
+### Capture Conditions
+
+The 18-case general suite ran in three alternating paired rounds with five
+repetitions per case, a 0.1-second minimum repetition time, and random
+interleaving. The summary is the median of per-round median wall times.
+Ranges below are minimum-maximum round medians, not confidence intervals.
+Positive reduction means less time than the old reference.
+
+The machine was Apple M4, 10 cores, 32 GiB RAM, macOS 27.0. Builds used AppleClang
+21.0.0, CMake 4.4.2, and `-O3 -DNDEBUG -std=c++20 -arch arm64 -Wall -Wextra`.
+The recorded power snapshot was **battery power**; background load, temperature,
+and scheduling were not isolated. This capture is not directly comparable to
+the earlier AC-powered absolute timings. Recalibrate this same revision under
+matching power and machine conditions when necessary.
+
+| Workload | Previous ms (range) | Precomputed ms (range) | Time Reduction | Interpretation |
+| --- | ---: | ---: | ---: | --- |
+| `bmAggregateAverage/1000000` | 3.499 (3.437-3.525) | 3.047 (2.978-3.052) | 12.9% | observed reduction |
+| `bmAggregateSum/1000000` | 3.571 (3.522-3.578) | 3.071 (3.006-3.119) | 14.0% | observed reduction |
+| `bmComposedGroupedQuery/1000000` | 34.270 (33.329-36.783) | 33.839 (33.254-36.213) | 1.3% | ranges overlap; inconclusive |
+| `bmComposedHiddenOrderQuery/1000000` | 79.799 (79.255-82.819) | 44.569 (41.817-47.140) | 44.1% | observed reduction |
+| `bmFilterFiftyPercent/1000000` | 83.243 (81.273-83.849) | 80.988 (78.181-87.661) | 2.7% | ranges overlap; inconclusive |
+| `bmFilterOneHundredPercent/1000000` | 163.055 (161.332-188.887) | 160.060 (155.060-163.159) | 1.8% | ranges overlap; inconclusive |
+| `bmFilterTenPercent/1000000` | 23.156 (22.047-24.585) | 23.229 (22.648-24.232) | -0.3% | ranges overlap; inconclusive |
+| `bmGroupByCategory/1000000` | 70.189 (68.144-71.948) | 70.985 (69.031-73.444) | -1.1% | ranges overlap; inconclusive |
+| `bmGroupByCategoryAndProduct/1000000` | 236.644 (233.522-249.062) | 236.137 (230.622-240.876) | 0.2% | ranges overlap; inconclusive |
+| `bmGroupByProduct/1000000` | 167.527 (165.902-168.063) | 167.669 (163.017-172.731) | -0.1% | ranges overlap; inconclusive |
+| `bmInsertReserved/1000000` | 5.171 (5.142-5.226) | 5.217 (5.213-5.300) | -0.9% | ranges overlap; inconclusive |
+| `bmInsertUnreserved/1000000` | 8.276 (8.230-8.592) | 8.317 (8.125-8.385) | -0.5% | ranges overlap; inconclusive |
+| `bmOrderByMultipleColumns/100000` | 136.119 (135.871-140.333) | 75.078 (68.601-75.927) | 44.8% | observed reduction |
+| `bmOrderByVisibleColumn/100000` | 82.852 (82.254-85.629) | 44.562 (41.990-46.104) | 46.2% | observed reduction |
+| `bmOrderByWithLimit/100000` | 70.911 (69.294-71.003) | 34.554 (34.359-36.667) | 51.3% | observed reduction |
+| `bmProjectionAllColumns/1000000` | 353.036 (342.960-364.826) | 240.372 (235.645-250.180) | 31.9% | observed reduction |
+| `bmProjectionOneColumn/1000000` | 174.133 (173.334-175.914) | 167.748 (154.411-172.098) | 3.7% | observed reduction |
+| `bmProjectionThreeColumns/1000000` | 261.823 (245.923-263.079) | 205.955 (197.867-212.172) | 21.3% | observed reduction |
+
+Ordering shows observed reductions of roughly 45-51%, and projection 4-32%.
+Filtering, grouping, insertion, and the composed grouped query have overlapping
+round ranges, so their small changes are inconclusive. These are local
+observations, not formal significance tests or hardware-independent guarantees.
+
+### Artifacts And Future Comparisons
+
+The full local archive is
+`build/benchmark-clang/benchmark-results/checkpoints/precomputed-values-89ca7cd/`.
+It contains `comparison.json`, `comparison.md`, and separate `reference/`
+and `candidate/` directories with summaries, metadata, raw repetitions,
+logs, and exact configure/build/run commands. The promoted files were copied
+from `candidate/summary.json` and `candidate/metadata.json`; no fastest-case
+mixture was used. Build artifacts remain ignored; this document preserves
+the checkpoint identity and numerical summary.
+
+After committing the next optimization, compare it with this reference:
+
+```sh
+bash scripts/benchmark-checkpoints.sh --candidate HEAD
+```
+
+That command reads the revision from `general-best.metadata.json` and
+re-measures both revisions under the current conditions. Measuring this same
+HEAD again is a repeatability check, not another optimization. Normal general
+runs compare with the promoted local timing file but never overwrite it.
+Keep the original baseline and previous checkpoint archives intact.
+
 ## Object-semantics checkpoint
 
 - Original baseline: `f15bdcbd958b9b455979dfc1c6657a1f07560fe1`.
