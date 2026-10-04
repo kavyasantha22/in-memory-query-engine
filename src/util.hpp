@@ -32,6 +32,13 @@ public:
     }
 };
 
+
+struct GroupKeyHash {
+    size_t operator()(const std::vector<ResultValue>& key) const {
+
+    }
+};
+
 std::string orderExpressionToString(const OrderExpression& expression);
 
 std::vector<int> convertToColumnIdx(
