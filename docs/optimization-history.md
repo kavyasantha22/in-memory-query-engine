@@ -148,6 +148,93 @@ Create the archive directories first. Do not pass aggregate-only output flags
 when collecting raw repetitions. Check that all 18 case names match and none
 reports an error. Retain the environment, commit IDs, and exact commands.
 
+## Static accessor-table experiment
+
+Reviewed on 4 October 2026. Experiment revision: `ea33db6`; preceding
+column-index checkpoint: `73caa34`.
+
+### Approach
+
+`getColumnValue()` replaced its switch with a function-local static
+`std::vector<std::function<ResultValue(const Row&)>>`. Each entry was a
+non-capturing lambda reading one numeric field. The column enum selected the
+entry on every call, and enum order had to match accessor order.
+
+The table was initialized once, but this did not resolve an accessor once per
+query: every value access still selected an entry and dispatched through
+`std::function`. It exchanged a switch for type-erased callable dispatch.
+The static vector also required initial allocation; that is not a repeated
+per-row allocation and should not be confused with the recurring dispatch cost.
+
+The same commit separately moved aggregate projection's column-name lookup
+outside the result-row loop. That change does not require the accessor table.
+Its expected impact is small in the general suite: grouped cases project only
+10 or 100 rows, the composed grouped case projects five rows after LIMIT, and
+direct aggregation cases do not call projection.
+
+### Observation and decision
+
+The developer observed slower execution with the accessor-table implementation.
+An isolated comparison on 4 October 2026 supports that observation, especially
+for direct SUM and AVG. Both variants used `ea33db6` query code, including the
+aggregate projection lookup optimization. The switch variant changed only
+`src/table.cpp`, restoring its contents from `73caa34`. Comparing those two
+commits directly would instead measure both changes together.
+
+### Isolated measurements
+
+Both detached worktrees used the `benchmark` Release preset, AppleClang
+21.0.0.21000101 (`-O3 -DNDEBUG`), Google Benchmark v1.9.5, and macOS 27.0
+(26A428). Six workloads each processed 1,000,000 input rows. There were three
+paired rounds, ten repetitions per workload, a one-second minimum per
+repetition, and random interleaving within each run. Variant order alternated:
+switch/accessor, accessor/switch, switch/accessor. All builds finished before
+measurement; all six runs completed with 60 iteration records and no benchmark
+errors each.
+
+Times below are median wall times across the three per-round medians. Ranges
+are the minimum and maximum of those round medians, not confidence intervals.
+Positive change means the accessor table took longer than the switch.
+
+| Workload | Switch ms (range) | Accessor ms (range) | Accessor time increase |
+| --- | ---: | ---: | ---: |
+| One-column projection | 82.987 (82.229-85.116) | 85.525 (85.437-86.968) | +3.1% |
+| All-column projection | 120.740 (120.199-121.153) | 124.390 (123.287-125.443) | +3.0% |
+| SUM | 1.780 (1.775-1.798) | 2.093 (2.049-2.102) | +17.6% |
+| AVG | 1.792 (1.780-1.800) | 2.059 (2.048-2.086) | +14.9% |
+| 10 category groups | 38.405 (37.631-38.504) | 39.642 (39.091-40.291) | +3.2% |
+| 100 product groups | 87.192 (86.953-88.443) | 89.305 (87.386-89.938) | +2.4% |
+
+Local artifacts are in
+`build/benchmark-clang/benchmark-results/accessor-experiment-20261004/`:
+`{switch,accessor}-round-{1,2,3}.json`, matching console logs,
+`switch-only.patch`, `metadata.json`, and `summary.json`. Metadata records the
+exact revision, patch checksum, commands, and aggregation method. These build
+artifacts are not committed; this table preserves the measured summary.
+
+The machine was not isolated or CPU-pinned. The SUM/AVG round ranges are well
+separated; the smaller projection/grouping differences warrant more caution,
+particularly product grouping whose ranges overlap. No statistical confidence
+or general hardware-independent slowdown is claimed. BigO/RMS records from a
+single tested row count are not evidence of scaling behavior.
+
+Callable dispatch is a plausible explanation for the slowdown, not a profiled
+finding. A compiler can optimize a small switch efficiently; replacing it with
+indirection is not inherently faster. Function pointers or resolving accessors
+outside the row loop are different experiments and have not been validated by
+this result. This observation does not reject every accessor-based design.
+
+The measured switch variant retains `std::invalid_argument` for unknown columns
+and the independent aggregate projection lookup optimization. It was built in
+a separate worktree; the developer's current implementation was not changed.
+The `std::function` experiment remains available in Git and is not promoted as
+a best checkpoint. A later static function-pointer array is a separate design
+and is not measured by these results.
+
+Keep this as a rejected implementation choice with measured evidence for these
+workloads. Future accessor experiments should isolate the change and repeat
+paired measurements before recording numerical claims or promotion.
+
 ## Preserve and promote checkpoints
 
 Use commits for incremental changes, tags for completed implementations, and
