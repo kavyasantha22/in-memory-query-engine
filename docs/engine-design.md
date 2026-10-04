@@ -31,9 +31,11 @@ optimality. See [optimization history](optimization-history.md) for checkpoints.
 | `include/query_engine/query.hpp` | Query clauses, ordering expressions, and public execution API |
 | `include/query_engine/aggregation.hpp` | Aggregate types and public aggregation API |
 | `include/query_engine/query_engine.hpp` | Convenience header for library consumers |
-| `src/table.cpp` | Data generation and column access |
-| `src/query.cpp` | Filtering, grouping, result construction, ordering, limits, and projection |
-| `src/aggregation.cpp` | Numeric aggregate calculations |
+| `src/table.cpp` | Data generation, column names, and field access |
+| `src/query.cpp` | Query workflow, execution stages, and row insertion |
+| `src/util.cpp` | Column-index resolution and expression names |
+| `src/util.hpp` | Private comparator class and supporting function declarations |
+| `src/aggregation.cpp` | Aggregate dispatch, calculations, and aggregate names |
 | `src/formatter.cpp` | Conversion to printable cells and ASCII table output |
 | `examples/` | Sample application |
 | `tests/` | Correctness executables |
@@ -41,8 +43,11 @@ optimality. See [optimization history](optimization-history.md) for checkpoints.
 
 CMake builds the implementation into the `query_engine` library. Examples,
 tests, and benchmarks link to it. Public headers are included with the
-`query_engine/` prefix. Some execution helpers remain internal implementation
-details in `query.cpp`, although they are not all given internal linkage.
+`query_engine/` prefix. Query stages stay in `query.cpp` with internal linkage.
+Supporting machinery uses the `query_engine` namespace and the private
+`src/util.hpp` header. Module-specific table, aggregation, and formatting helpers
+remain with their modules rather than being moved into a general utility
+collection. Future shared key hashers can follow the utility boundary.
 
 All library types and functions belong to `namespace query_engine`, keeping
 names such as `Row`, `Query`, and `aggregate` out of the global namespace.

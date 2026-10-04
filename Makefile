@@ -8,8 +8,8 @@ HIDDEN_ORDER_BY_TEST := hidden_order_by_test_runner
 LIMIT_TEST := limit_test_runner
 GROUP_BY_TEST := group_by_test_runner
 TEST_TARGETS := $(QUERY_TEST) $(QUERY_AGGREGATION_TEST) $(AGGREGATION_TEST) $(GROUP_BY_TEST) $(ORDER_BY_TEST) $(HIDDEN_ORDER_BY_TEST) $(LIMIT_TEST)
-CORE_SOURCES := src/query.cpp src/table.cpp src/aggregation.cpp src/formatter.cpp
-HEADERS := $(wildcard include/query_engine/*.hpp)
+CORE_SOURCES := src/query.cpp src/table.cpp src/aggregation.cpp src/formatter.cpp src/util.cpp
+HEADERS := $(wildcard include/query_engine/*.hpp src/*.hpp)
 
 .PHONY: all run clean
 

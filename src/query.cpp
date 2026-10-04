@@ -1,95 +1,9 @@
-#include "query_engine/table.hpp"
-#include "query_engine/query.hpp"
-#include "query_engine/aggregation.hpp"
-#include <stdexcept>
-#include <string>
-#include <vector>
+#include "util.hpp"
 #include <algorithm>
 #include <utility>
 
 namespace query_engine {
-
-
-std::string orderExpressionToString(const OrderExpression& expression) {
-    if (const auto* column = std::get_if<ColumnName>(&expression)) {
-        return columnNameToString(*column);
-    }else{
-        const auto& aggregation = std::get<Aggregation>(expression);
-        return aggregationToString(aggregation);
-    }
-}
-
-
-class RowComparator {
-public:
-    const std::vector<OrderByItem>& order_by;
-    const std::vector<int>& order_by_column_idx;
-
-    bool operator()(const ResultRow& left, const ResultRow& right) const {
-        for (size_t i = 0; i < order_by.size(); i++){
-            const OrderByItem& order = order_by[i];
-            int idxSort = order_by_column_idx[i];
-
-            if (idxSort == -1) continue;
-
-            ResultValue left_val = left.data[idxSort];
-            ResultValue right_val = right.data[idxSort];
-            if (
-                (order.ascending && left_val < right_val) ||
-                (!order.ascending && left_val > right_val)
-            ) return true;
-
-            if (
-                (order.ascending && left_val > right_val) ||
-                (!order.ascending && left_val < right_val)
-            ) return false;
-        }
-        return false;
-    }
-};
-
-
-std::vector<int> convertToColumnIdx(
-    const std::vector<std::string>& table_columns, 
-    const std::vector<std::string>& query_columns
-){
-    std::vector<int> column_idx;
-
-    for (const auto& query_col: query_columns){
-        int col_idx = -1;
-        for (size_t i = 0; i < table_columns.size(); i++){
-            if (table_columns[i] == query_col){
-                col_idx = i;
-                break;
-            }
-        }
-        column_idx.push_back(col_idx);
-    }
-    return column_idx;
-}
-
-
-std::vector<int> convertToColumnIdx(
-    const std::vector<std::string>& table_columns, 
-    const std::vector<ColumnName>& query_columns
-){
-    std::vector<int> column_idx;
-
-    for (const auto& query_col: query_columns){
-        std::string string_query_col = columnNameToString(query_col);
-
-        int col_idx = -1;
-        for (size_t i = 0; i < table_columns.size(); i++){
-            if (table_columns[i] == string_query_col){
-                col_idx = i;
-                break;
-            }
-        }
-        column_idx.push_back(col_idx);
-    }
-    return column_idx;
-}
-
+namespace {
 
 void applyOrderBy(ResultTable& result_table, const std::vector<OrderByItem>& order_by){
     std::vector<std::string> order_by_column_names;
@@ -288,6 +202,7 @@ ResultTable buildResultTable(const std::vector<Group>& groups, const Query& quer
     return result_table;
 }
 
+} // namespace
 
 ResultTable queryTable(const Table& table, const Query& query){
     // This is for filter
@@ -324,4 +239,3 @@ void insertRow(Table& table, Row row){
 }
 
 } // namespace query_engine
-

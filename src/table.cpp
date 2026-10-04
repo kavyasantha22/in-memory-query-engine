@@ -1,4 +1,5 @@
 #include "query_engine/table.hpp"
+#include <array>
 #include <chrono>
 #include <stdexcept>
 

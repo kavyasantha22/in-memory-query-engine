@@ -11,6 +11,7 @@ add_library(query_engine
     src/formatter.cpp
     src/query.cpp
     src/table.cpp
+    src/util.cpp
 )
 
 target_include_directories(query_engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

@@ -61,6 +61,7 @@ add_library(query_engine
     src/formatter.cpp
     src/query.cpp
     src/table.cpp
+    src/util.cpp
 )
 ```
 
