@@ -195,6 +195,18 @@ void applyProjection(
         projection
     );
 
+    int aggregation_column_idx = -1;
+    if (aggregation){
+        const std::string aggregation_column_name = aggregationToString(*aggregation);
+        for (size_t i = 0; i < result_table.column_names.size(); i++){
+            const std::string& col_name = result_table.column_names[i];
+            if (aggregation_column_name == col_name){
+                aggregation_column_idx = i;
+                break;
+            }
+        }
+    }   
+    
     for (const ResultRow& row: result_table.rows){
         ResultRow new_row;
 
@@ -204,21 +216,8 @@ void applyProjection(
             }
         }
 
-        if (aggregation){
-            const std::string aggregation_column_name = aggregationToString(*aggregation);
-
-            int idx = -1;
-            for (size_t i = 0; i < result_table.column_names.size(); i++){
-                const std::string& col_name = result_table.column_names[i];
-                if (aggregation_column_name == col_name){
-                    idx = i;
-                    break;
-                }
-            }
-
-            if (idx != -1){
-                new_row.data.push_back(row.data[idx]);
-            }
+        if (aggregation_column_idx != -1){
+            new_row.data.push_back(row.data[aggregation_column_idx]);
         }   
         temp_rows.push_back(std::move(new_row));
     }
