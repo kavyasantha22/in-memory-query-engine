@@ -49,17 +49,17 @@ std::string columnNameToString(const ColumnName& col){
     throw std::invalid_argument("Unknown column");
 }
 
-using ColumnAccessor = std::function<ResultValue(const Row&)>;
+using ColumnAccessor = ResultValue (*)(const Row&);
 ResultValue getColumnValue(const Row& row, const ColumnName& column){
-    static const std::vector<ColumnAccessor> accessors = {
-        [](const Row& row) { return row.transaction_id; },
-        [](const Row& row) { return row.product_id; },
-        [](const Row& row) { return row.category_id; },
-        [](const Row& row) { return row.price; },
-        [](const Row& row) { return row.quantity; },
-        [](const Row& row) { return row.timestamp; }
+    static const std::array<ColumnAccessor, 6> accessors = {
+        +[](const Row& row) -> ResultValue { return row.transaction_id; },
+        +[](const Row& row) -> ResultValue { return row.product_id; },
+        +[](const Row& row) -> ResultValue { return row.category_id; },
+        +[](const Row& row) -> ResultValue { return row.price; },
+        +[](const Row& row) -> ResultValue { return row.quantity; },
+        +[](const Row& row) -> ResultValue { return row.timestamp; }
     };
-    return accessors[static_cast<size_t>(column)](row);
+    return accessors.at(static_cast<size_t>(column))(row);
 }
 
 } // namespace query_engine
